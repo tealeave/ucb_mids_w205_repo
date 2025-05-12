@@ -1,25 +1,105 @@
-* **Set the PEM file permissions**
+## 1. Connecting to the VM
 
-  Before connecting, ensure your private key file is only readable by you:
+1. **Lock down your private key**
 
-  ```bash
-  chmod 400 UCB.pem
-  ```
+   ```bash
+   chmod 400 UCB.pem
+   ```
 
-  This command makes `UCB.pem` readable by the owner only (no write or execute permissions for anyone).
+   Makes `UCB.pem` readable **only** by you (no write/execute for anyone).
 
-* **SSH command**
+2. **SSH into the instance**
+- note that the public DNS changes everytime
 
-  Use the following to connect to the VM. Here, `w205` is the username that Kevin configured in the AMI, and the part after `@` is your VM’s public DNS:
+   ```bash
+   ssh -i "UCB.pem" w205@ec2-54-81-250-101.compute-1.amazonaws.com
+   ```
 
-  ```bash
-  ssh -i "UCB.pem" w205@ec2-54-81-250-101.compute-1.amazonaws.com
-  ```
+   * `w205` is the AMI user Kevin configured
+   * The hostname (`ec2-…amazonaws.com`) is your VM’s public DNS
 
-* **Download a file from the VM**
+3. **Copy a file from the VM**
 
-  To download a file from the VM to your local machine, use the `scp` command. Replace the path after the colon with the path to the file on the VM, and `attendance` with the desired local folder:
+   ```bash
+   scp -i "UCB.pem" \
+     w205@ec2-54-81-250-101.compute-1.amazonaws.com:/home/w205/user/certificates/ap_week_01_cert.txt \
+     attendance/
+   ```
 
-  ```bash
-  scp -i "UCB.pem" w205@ec2-54-81-250-101.compute-1.amazonaws.com:/home/w205/user/certificates/ap_week_01_cert.txt attendance
-  ```
+   Adjust the remote path (`:/…`) and local folder (`attendance/`) as needed.
+
+---
+
+## 2. Managing the Docker Cluster
+
+We’ll cover Docker in detail later—here are the essential commands to spin up our **Anaconda + Postgres** cluster.
+
+1. **Navigate to the cluster directory**
+
+   ```bash
+   cd ~/docker/clusters/anaconda_postgres
+   ```
+
+2. **Check existing containers**
+
+   ```bash
+   docker ps -a
+   ```
+
+3. **Start the cluster**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+   * Launches both the **Postgres** and **Anaconda/Jupyter** containers in detached mode.
+
+4. **Verify it’s running**
+
+   ```bash
+   docker ps -a
+   ```
+
+5. **Shut down the cluster**
+   Always stop your containers before terminating or stopping the VM:
+
+   ```bash
+   docker-compose down
+   ```
+
+   Confirm with:
+
+   ```bash
+   docker ps -a
+   ```
+
+---
+
+## 3. Launching Jupyter Notebook
+
+Inside the cluster, tell Jupyter to bind to **all interfaces** (`0.0.0.0`) so Docker’s port mapping works:
+
+```bash
+docker-compose exec anaconda \
+  jupyter notebook \
+    --notebook-dir=/user \
+    --ip=0.0.0.0 \
+    --port=8888 \
+    --no-browser \
+    --allow-root
+```
+
+When it starts, you’ll see a URL with a token (changes everytime), e.g.:
+
+```
+http://127.0.0.1:8888/?token=755f90515a61e38c30e3a70bc33116977694e4c0c70bb647
+```
+
+1. **In your local browser**, replace `127.0.0.1` with your EC2’s public IP (changes everytime):
+
+   ```
+   http://<EC2_PUBLIC_IP>:8888/?token=…
+   ```
+2. **Enjoy your Jupyter environment** running on Python 3.x with direct access to Postgres.
+
+https://18.215.244.74:8888/?token=c07cea3950b35570abe2ae0899693c6674c7c37c274782ef
