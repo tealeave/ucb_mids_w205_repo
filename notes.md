@@ -102,4 +102,5 @@ http://127.0.0.1:8888/?token=755f90515a61e38c30e3a70bc33116977694e4c0c70bb647
    ```
 2. **Enjoy your Jupyter environment** running on Python 3.x with direct access to Postgres.
 
-https://18.215.244.74:8888/?token=c07cea3950b35570abe2ae0899693c6674c7c37c274782ef
+https://54.162.122.105:8888/?token=6f9d0200fb93e15f9e6f3f90075033b15c93ac0feadd73c4
+
