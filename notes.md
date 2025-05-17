@@ -102,5 +102,43 @@ http://127.0.0.1:8888/?token=755f90515a61e38c30e3a70bc33116977694e4c0c70bb647
    ```
 2. **Enjoy your Jupyter environment** running on Python 3.x with direct access to Postgres.
 
-https://54.162.122.105:8888/?token=6f9d0200fb93e15f9e6f3f90075033b15c93ac0feadd73c4
+---
+
+## 4. Using an Elastic IP
+
+After associating an Elastic IP with your instance, you can add your computer's public key (e.g., `id_ed25519_berkeley.pub`) to the `authorized_keys` file on the VM. This allows you to connect using a more user-friendly hostname configured in your SSH config file.
+
+```bash
+# Coonect to the instance
+ssh mids-205-ec2
+
+cd ~/docker/clusters/anaconda_postgres
+
+# Spin up the conda and postgres
+docker-compose up -d 
+
+# Launch your devcontainer (detached, tailing /dev/null)
+
+cd ~/
+
+docker run -d --name w205-dev \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$PWD":/workspaces/w205:cached \
+  -w /workspaces/w205 \
+  --network=anaconda_postgres_default \
+  -u w205 \
+  w205-dev \
+  tail -f /dev/null
+
+# 4) Exec in and start the tunnel
+docker exec -it w205-dev bash -lc '
+  cd /workspaces/w205 &&
+  code tunnel --name w205-devcontainer --accept-server-license-terms
+'
+
+# Download the file
+scp mids-205-ec2:/home/w205/folder_str .
+```
+
+
 
