@@ -121,6 +121,8 @@ docker-compose up -d
 
 cd ~/
 
+docker build -t w205-dev .
+
 docker run -d --name w205-dev \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD":/workspaces/w205:cached \
@@ -129,6 +131,20 @@ docker run -d --name w205-dev \
   -u w205 \
   w205-dev \
   tail -f /dev/null
+
+or
+
+docker run -d --name w205-dev \
+  --network=anaconda_postgres_default \
+  --add-host anaconda:127.0.0.1 \
+  --add-host postgres:127.0.0.1 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$PWD":/workspaces/w205:cached \
+  -w /workspaces/w205 \
+  -u w205 \
+  w205-dev \
+  tail -f /dev/null
+
 
 # 4) Exec in and start the tunnel
 docker exec -it w205-dev bash -lc '
