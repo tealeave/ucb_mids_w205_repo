@@ -112,48 +112,28 @@ After associating an Elastic IP with your instance, you can add your computer's 
 # Coonect to the instance
 ssh mids-205-ec2
 
-cd ~/docker/clusters/anaconda_postgres
-
-# Spin up the conda and postgres
-docker-compose up -d 
-
-# Launch your devcontainer (detached, tailing /dev/null)
-
 cd ~/
 
-docker build -t w205-dev .
+# Spin up the my app, conda, and postgres, note that Dockerfile and docker-compose.yml contains info are at the same folder ~/
+docker-compose up -d --force-recreate  
 
-docker run -d --name w205-dev \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v "$PWD":/workspaces/w205:cached \
-  -w /workspaces/w205 \
-  --network=anaconda_postgres_default \
-  -u w205 \
-  w205-dev \
-  tail -f /dev/null
+# Check my app log for tunnel info, click on the link provided and use the pw to link github account to dev container app
+# docker logs -f w205_app_1 to live steam the log
+docker logs w205_app_1 
 
-or
+# Check the conda log (optional)
+docker logs w205_anaconda_1
 
-docker run -d --name w205-dev \
-  --network=anaconda_postgres_default \
-  --add-host anaconda:127.0.0.1 \
-  --add-host postgres:127.0.0.1 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v "$PWD":/workspaces/w205:cached \
-  -w /workspaces/w205 \
-  -u w205 \
-  w205-dev \
-  tail -f /dev/null
+# Open a new window for VScode, remote-tunnel -> github -> choose the one that is "online"
+# Open a notebook, offer http://anaconda:8888 as server
 
+# After works are done
+docker-compose down
 
-# 4) Exec in and start the tunnel
-docker exec -it w205-dev bash -lc '
-  cd /workspaces/w205 &&
-  code tunnel --name w205-devcontainer --accept-server-license-terms
-'
+# Turn off the EC2 VM
 
 # Download the file
-scp mids-205-ec2:/home/w205/folder_str .
+scp mids-205-ec2:/home/w205/user/certificates/ attendance/
 ```
 
 
