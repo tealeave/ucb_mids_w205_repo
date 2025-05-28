@@ -22,8 +22,8 @@ RUN apt-get update \
         tk-dev \
     # Create group and user
     && groupadd -g 1001 mids \
-    # Specify a different home directory path with the -d option
-    && useradd -m -d /opt/w205_container_home -u 1001 -g 1001 -s /bin/bash w205 \
+    # Set home directory to /home/w205 for user w205
+    && useradd -m -u 1001 -g 1001 -s /bin/bash w205 \
     # Setup sudo for w205
     && echo "w205 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/w205 \
     && chmod 0440 /etc/sudoers.d/w205 \

@@ -17,6 +17,9 @@ services:
       - /home/w205/docker:/workspace/docker # Docker directory:
       - /home/w205/scripts:/workspace/scripts # Scripts directory
       - /home/w205/temp:/workspace/temp # Temporary files directory
+      # --- THIS IS THE IMPORTANT LINE FOR SSH KEYS ---
+      - /home/w205/.ssh:/home/w205/.ssh:ro  # Mount VM's .ssh to container's .ssh
+                                             # ':ro' makes it read-only in the container (recommended)
 
     working_dir: /workspace
     stdin_open: true
