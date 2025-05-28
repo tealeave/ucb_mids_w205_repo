@@ -1,4 +1,36 @@
+# Existing entries
 # ignore private key
 UCB.pem
 public_ip.md
 labs_on_vm/week_02/geojson_data
+gmap_api_key.txt
+w205.key
+w205_cert.pem
+
+# Suggested additions
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Python compiled files
+__pycache__/
+*.pyc
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+
+# Data files (optional, depending on your needs)
+*.csv
+*.json
+*.xlsx
+
+# Virtual environments (if applicable)
+venv/
+.env
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
