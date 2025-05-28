@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+    
+  <head>
+    <title>Stores</title>
+  </head>
+    
+  <body>
+    <h1>Stores</h1>
+
+        <table class="table table-striped table-hover table-bordered table-sm table-responsive">
+            <thead>
+                <tr>
+                    <th scope="col">Store ID</th>
+                    <th scope="col">City</th>
+                    <th scope="col">Total Sales</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for store_id, city, total_sales in stores_list %}
+                <tr>
+                    <td>{{store_id}}</td>
+                    <td>{{city}}</td>
+                    <td>{{total_sales}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+     
+  </body>
+</html>
+
+
