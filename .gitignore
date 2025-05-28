@@ -20,10 +20,10 @@ __pycache__/
 *.tmp
 *.swp
 
-# Data files (optional, depending on your needs)
+<!-- # Data files (optional, depending on your needs)
 *.csv
 *.json
-*.xlsx
+*.xlsx -->
 
 # Virtual environments (if applicable)
 venv/
