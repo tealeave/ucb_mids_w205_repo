@@ -132,8 +132,8 @@ docker-compose down
 
 # Turn off the EC2 VM
 
-# Download the file
-scp mids-205-ec2:/home/w205/user/certificates/ attendance/
+# Example for Downloading a file
+scp mids-205-ec2:/home/w205/user/certificates/lab_week_04_cert.txt attendance/
 ```
 
 
