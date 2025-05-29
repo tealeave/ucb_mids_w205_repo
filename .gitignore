@@ -34,3 +34,6 @@ venv/
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+# Ignore the backup .tgz file cause they're too large
+*.tgz
