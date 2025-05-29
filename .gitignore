@@ -37,3 +37,4 @@ venv/
 
 # Ignore the backup .tgz file cause they're too large
 *.tgz
+/backup
