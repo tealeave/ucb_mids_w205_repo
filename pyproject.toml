@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "ucb-mids-w205-repo"
+version = "0.1.0"
+description = "A non-package project for MIDS W205"
+authors = ["David Lin"]
+package-mode = false  # Add this line
+
+[tool.poetry.dependencies]
+python = "^3.10"
+paramiko = "^3.5.1"  # Example, adjust based on your lock file
+# Other dependencies as needed
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

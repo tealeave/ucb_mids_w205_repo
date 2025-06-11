@@ -134,7 +134,19 @@ docker-compose down
 
 # Example for Downloading a file
 scp mids-205-ec2:/home/w205/user/certificates/lab_week_04_cert.txt attendance/
-```
 
+# For UCI
+ssh hpc3.rcic.uci.edu
+
+sbatch --cpus-per-task=4 /opt/rcic/scripts/vscode-sshd.sh
+
+cat vscode-sshd-39185957.out
+
+connect to Host -> add SSH host
+
+# Edit the config
+
+connect to the host hpc*
+```
 
 
