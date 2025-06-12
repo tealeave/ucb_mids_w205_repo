@@ -183,7 +183,7 @@ def parse_output_and_display(output_content, job_id):
         print("\n" + "="*50)
         print(f"✅ Job {job_id} is running.")
         print(f"To stop this server later, run:")
-        print(f"python {os.path.basename(sys.argv[0])} cancel {job_id}")
+        print(f"poetry run python {os.path.basename(sys.argv[0])} cancel {job_id}")
         print("="*50)
 
     else:
