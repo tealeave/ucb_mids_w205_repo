@@ -9,9 +9,8 @@ import argparse
 # The hostname for the HPC login node, which must match an entry in your ~/.ssh/config file.
 HPC_HOSTNAME = 'hpc3.rcic.uci.edu'
 
-# The command to submit the Slurm job for the VS Code server.
-# Using --cpus-per-task=4 as specified in your example.
-SBATCH_COMMAND = 'sbatch --cpus-per-task=4 /opt/rcic/scripts/vscode-sshd.sh'
+# Base command to submit the Slurm job. The CPU count will be added dynamically.
+SBATCH_SCRIPT_PATH = '/opt/rcic/scripts/vscode-sshd.sh'
 
 # Time in seconds to wait between checking for the output file.
 POLL_INTERVAL = 5
@@ -154,13 +153,15 @@ def cancel_job(client, job_id):
         else:
             print("    Unknown error. The job may have already finished or the ID is invalid.", file=sys.stderr)
 
-def parse_output_and_display(output_content, job_id):
+def parse_output_and_display(output_content, job_id, cpus, mem):
     """
     Parses the job output to find the SSH config and prints it along with a cancel command.
 
     Args:
         output_content (str): The string content of the job output file.
         job_id (str): The ID of the submitted job.
+        cpus (int): The number of CPUs requested for the job.
+        mem (str): The amount of memory requested for the job.
     """
     if not output_content:
         print("[!] Cannot parse empty output content.", file=sys.stderr)
@@ -181,7 +182,7 @@ def parse_output_and_display(output_content, job_id):
         print("\nAfter adding it, use 'Remote-SSH: Connect to Host...' and select 'hpc3-*'.")
         
         print("\n" + "="*50)
-        print(f"✅ Job {job_id} is running.")
+        print(f"✅ Job {job_id} is running with {cpus} CPU(s) and {mem} of memory.")
         print(f"To stop this server later, run:")
         print(f"poetry run python {os.path.basename(sys.argv[0])} cancel {job_id}")
         print("="*50)
@@ -196,22 +197,44 @@ def parse_output_and_display(output_content, job_id):
 def main():
     """ Main function to parse arguments and run the automation script. """
     parser = argparse.ArgumentParser(
-        description="Automate VS Code server management on UCI HPC.",
+        description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
+        epilog="Example usage:\n"
+               "  poetry run python hpc_automator.py create --cpus 8 --mem 32G\n"
+               "  poetry run python hpc_automator.py cancel 123456",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    # This makes the 'command' argument mandatory.
     subparsers = parser.add_subparsers(dest='command', required=True, help='Available actions')
 
-    # Create command - starts a new job.
-    subparsers.add_parser('create', help='Create and configure a new VS Code server job.')
+    # Create command - starts a new job with resource options.
+    parser_create = subparsers.add_parser(
+        'create', 
+        help='Submits a new Slurm job to start a VS Code server.',
+        description='Creates a new VS Code server job, waits for it to start, and provides the necessary SSH configuration.'
+    )
+    parser_create.add_argument(
+        '--cpus', 
+        type=int, 
+        default=4, 
+        help='Number of CPUs to request for the job. Default: 4'
+    )
+    parser_create.add_argument(
+        '--mem', 
+        type=str, 
+        default='16G', 
+        help='Amount of memory to request (e.g., "16G", "32G"). Default: "16G"'
+    )
 
     # Cancel command - stops a running job.
-    parser_cancel = subparsers.add_parser('cancel', help='Cancel a running VS Code server job.')
-    parser_cancel.add_argument('job_id', help='The ID of the Slurm job to cancel.')
+    parser_cancel = subparsers.add_parser(
+        'cancel', 
+        help='Stops a running VS Code server job on Slurm.',
+        description='Cancels a specific, running Slurm job using its job ID.'
+        )
+    parser_cancel.add_argument('job_id', help='The numeric ID of the Slurm job to be cancelled.')
     
     args = parser.parse_args()
 
-    # --- Common setup for both commands ---
+    # --- Common setup for all actions ---
     print("--- UCI HPC VS Code Automation Script ---")
 
     # 1. Load SSH configuration from file
@@ -227,21 +250,22 @@ def main():
     user_config = ssh_config.lookup(HPC_HOSTNAME)
     if not user_config or 'hostname' not in user_config:
         print(f"[!] No configuration for host '{HPC_HOSTNAME}' found in '{ssh_config_path}'.", file=sys.stderr)
-        # Instructions for the user are printed here.
         return
 
-    # 2. Establish SSH connection using the config
+    # 2. Establish SSH connection
     client = get_ssh_client(user_config)
     if not client:
         return
 
-    # --- Command-specific logic ---
+    # --- Action-specific logic ---
     if args.command == 'create':
-        job_id = submit_job(client, SBATCH_COMMAND)
+        sbatch_command = f'sbatch --cpus-per-task={args.cpus} --mem={args.mem} {SBATCH_SCRIPT_PATH}'
+        
+        job_id = submit_job(client, sbatch_command)
         if job_id:
             output_content = get_job_output(client, job_id)
             if output_content:
-                parse_output_and_display(output_content, job_id)
+                parse_output_and_display(output_content, job_id, args.cpus, args.mem)
             else:
                 print("[!] Failed to retrieve job output. Please log in manually to check the job status.")
                 print(f"    Check for a file named 'vscode-sshd-{job_id}.out' in your home directory.")
