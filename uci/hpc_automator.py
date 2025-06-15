@@ -153,15 +153,16 @@ def cancel_job(client, job_id):
         else:
             print("    Unknown error. The job may have already finished or the ID is invalid.", file=sys.stderr)
 
-def parse_output_and_display(output_content, job_id, cpus, mem):
+def parse_output_and_display(output_content, job_id, cpus, mem, gpu):
     """
     Parses the job output to find the SSH config and prints it along with a cancel command.
 
     Args:
         output_content (str): The string content of the job output file.
         job_id (str): The ID of the submitted job.
-        cpus (int): The number of CPUs requested for the job.
-        mem (str): The amount of memory requested for the job.
+        cpus (int or None): The number of CPUs requested for the job.
+        mem (str or None): The amount of memory requested for the job.
+        gpu (bool): Whether a GPU was requested for the job.
     """
     if not output_content:
         print("[!] Cannot parse empty output content.", file=sys.stderr)
@@ -182,7 +183,29 @@ def parse_output_and_display(output_content, job_id, cpus, mem):
         print("\nAfter adding it, use 'Remote-SSH: Connect to Host...' and select 'hpc3-*'.")
         
         print("\n" + "="*50)
-        print(f"✅ Job {job_id} is running with {cpus} CPU(s) and {mem} of memory.")
+        
+        # Build the job specification message dynamically
+        job_spec_message = f"✅ Job {job_id} is running"
+        requested_resources = []
+        if gpu:
+            requested_resources.append("1 V100 GPU")
+        if cpus:
+            requested_resources.append(f"{cpus} CPU(s)")
+        if mem:
+            requested_resources.append(f"{mem} of memory")
+
+        if requested_resources:
+            # Natural language join for the list of resources
+            if len(requested_resources) > 2:
+                resource_str = ", ".join(requested_resources[:-1]) + f", and {requested_resources[-1]}"
+            else:
+                resource_str = " and ".join(requested_resources)
+            job_spec_message += f" with {resource_str}."
+        else:
+            job_spec_message += " with default cluster resources."
+        
+        print(job_spec_message)
+
         print(f"To stop this server later, run:")
         print(f"poetry run python {os.path.basename(sys.argv[0])} cancel {job_id}")
         print("="*50)
@@ -199,7 +222,13 @@ def main():
     parser = argparse.ArgumentParser(
         description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
         epilog="Example usage:\n"
-               "  poetry run python hpc_automator.py create --cpus 8 --mem 32G\n"
+               "  # Request a server with specific resources\n"
+               "  poetry run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
+               "  # Request a server with a GPU (and default CPU/mem)\n"
+               "  poetry run python hpc_automator.py create --gpu\n\n"
+               "  # Request a GPU with specific CPU/mem\n"
+               "  poetry run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
+               "  # Cancel a running server\n"
                "  poetry run python hpc_automator.py cancel 123456",
         formatter_class=argparse.RawTextHelpFormatter
     )
@@ -213,15 +242,20 @@ def main():
     )
     parser_create.add_argument(
         '--cpus', 
-        type=int, 
-        default=4, 
-        help='Number of CPUs to request for the job. Default: 4'
+        type=int,
+        # No default value
+        help='Number of CPUs to request for the job (e.g., 4). If not set, uses cluster default.'
     )
     parser_create.add_argument(
         '--mem', 
-        type=str, 
-        default='16G', 
-        help='Amount of memory to request (e.g., "16G", "32G"). Default: "16G"'
+        type=str,
+        # No default value
+        help='Amount of memory to request (e.g., "16G"). If not set, uses cluster default.'
+    )
+    parser_create.add_argument(
+        '--gpu',
+        action='store_true',
+        help='Request a V100 GPU for the job. This will add "-p free-gpu --gres=gpu:V100:1" to the Slurm command.'
     )
 
     # Cancel command - stops a running job.
@@ -259,13 +293,26 @@ def main():
 
     # --- Action-specific logic ---
     if args.command == 'create':
-        sbatch_command = f'sbatch --cpus-per-task={args.cpus} --mem={args.mem} {SBATCH_SCRIPT_PATH}'
+        # Build the sbatch command parts in the correct order
+        sbatch_options = []
+        if args.gpu:
+            sbatch_options.append('-p free-gpu --gres=gpu:V100:1')
+        if args.cpus:
+            sbatch_options.append(f'--ntasks={args.cpus}')
+        if args.mem:
+            sbatch_options.append(f'--mem={args.mem}')
+        
+        # Join options with spaces, if any exist
+        sbatch_args_str = " ".join(sbatch_options)
+        
+        # Construct the full command
+        sbatch_command = f'sbatch {sbatch_args_str} {SBATCH_SCRIPT_PATH}'.strip()
         
         job_id = submit_job(client, sbatch_command)
         if job_id:
             output_content = get_job_output(client, job_id)
             if output_content:
-                parse_output_and_display(output_content, job_id, args.cpus, args.mem)
+                parse_output_and_display(output_content, job_id, args.cpus, args.mem, args.gpu)
             else:
                 print("[!] Failed to retrieve job output. Please log in manually to check the job status.")
                 print(f"    Check for a file named 'vscode-sshd-{job_id}.out' in your home directory.")

@@ -139,11 +139,15 @@ scp mids-205-ec2:/home/w205/user/certificates/lab_week_04_cert.txt attendance/
 ssh hpc3.rcic.uci.edu
 
 # Submit job for VScode
-sbatch --cpus-per-task=4 /opt/rcic/scripts/vscode-sshd.sh
+sbatch --ntasks=4 /opt/rcic/scripts/vscode-sshd.sh
+sbatch -p free-gpu --gres=gpu:V100:1 --ntasks=4  --mem=16G /opt/rcic/scripts/vscode-sshd.sh
+sbatch -p free --cpus-per-task=4 /opt/rcic/scripts/vscode-sshd.sh
+sbatch -p free-gpu --ntasks=4 --gres=gpu:V100:1 /opt/rcic/scripts/vscode-sshd.sh
 
 # Request interactive resources and GPU node, work in progress
 srun -p free-gpu --gres=gpu:V100:1 --pty /bin/bash -i
 srun -p free --nodes=1 --ntasks=4 --mem=32G --pty /bin/bash -i
+srun -p free-gpu --ntasks=4 --gres=gpu:V100:1 --pty /bin/bash -i
 
 cat vscode-sshd-39185957.out
 
