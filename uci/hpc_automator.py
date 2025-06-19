@@ -297,6 +297,9 @@ def main():
         sbatch_options = []
         if args.gpu:
             sbatch_options.append('-p free-gpu --gres=gpu:V100:1')
+        else: # Add -p free if GPU is not requested
+            sbatch_options.append('-p free') 
+        
         if args.cpus:
             sbatch_options.append(f'--ntasks={args.cpus}')
         if args.mem:
