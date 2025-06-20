@@ -222,14 +222,16 @@ def main():
     parser = argparse.ArgumentParser(
         description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
         epilog="Example usage:\n"
-               "  # Request a server with specific resources\n"
-               "  poetry run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
-               "  # Request a server with a GPU (and default CPU/mem)\n"
-               "  poetry run python hpc_automator.py create --gpu\n\n"
-               "  # Request a GPU with specific CPU/mem\n"
-               "  poetry run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
-               "  # Cancel a running server\n"
-               "  poetry run python hpc_automator.py cancel 123456",
+               "   # Request a server with specific resources\n"
+               "   poetry run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
+               "   # Request a server with a GPU (and default CPU/mem)\n"
+               "   poetry run python hpc_automator.py create --gpu\n\n"
+               "   # Request a GPU with specific CPU/mem\n"
+               "   poetry run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
+               "   # Request a server in the 'free' partition\n"
+               "   poetry run python hpc_automator.py create --free\n\n"
+               "   # Cancel a running server\n"
+               "   poetry run python hpc_automator.py cancel 123456",
         formatter_class=argparse.RawTextHelpFormatter
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Available actions')
@@ -256,6 +258,11 @@ def main():
         '--gpu',
         action='store_true',
         help='Request a V100 GPU for the job. This will add "-p free-gpu --gres=gpu:V100:1" to the Slurm command.'
+    )
+    parser_create.add_argument(
+        '--free',
+        action='store_true',
+        help='Request a job in the "free" partition. This will add "-p free" to the Slurm command. Mutually exclusive with --gpu.'
     )
 
     # Cancel command - stops a running job.
@@ -293,11 +300,17 @@ def main():
 
     # --- Action-specific logic ---
     if args.command == 'create':
+        # Validate mutual exclusivity of --gpu and --free
+        if args.gpu and args.free:
+            print("[!] Error: --gpu and --free options are mutually exclusive. Please choose one.", file=sys.stderr)
+            client.close()
+            return
+
         # Build the sbatch command parts in the correct order
         sbatch_options = []
         if args.gpu:
             sbatch_options.append('-p free-gpu --gres=gpu:V100:1')
-        else: # Add -p free if GPU is not requested
+        elif args.free: # Only add -p free if --free is explicitly used
             sbatch_options.append('-p free') 
         
         if args.cpus:
