@@ -9,6 +9,9 @@ package-mode = false  # Add this line
 python = "^3.10"
 paramiko = "^3.5.1"  # Example, adjust based on your lock file
 # Other dependencies as needed
+ipykernel = "^6.29.5"
+pandas = "^2.3.0"
+matplotlib = "^3.10.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
