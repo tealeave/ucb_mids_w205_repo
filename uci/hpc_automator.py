@@ -123,7 +123,7 @@ def get_job_output(client, job_id):
                 if "user mode sshd started" in content:
                     print("[+] Complete output file found!")
                     return content
-        
+            
         print(f"    ...still waiting for complete file (elapsed: {int(time.time() - start_time)}s)")
         time.sleep(POLL_INTERVAL)
 
@@ -153,7 +153,7 @@ def cancel_job(client, job_id):
         else:
             print("    Unknown error. The job may have already finished or the ID is invalid.", file=sys.stderr)
 
-def parse_output_and_display(output_content, job_id, cpus, mem, gpu):
+def parse_output_and_display(output_content, job_id, cpus, mem, gpu, pk_account):
     """
     Parses the job output to find the SSH config and prints it along with a cancel command.
 
@@ -163,6 +163,7 @@ def parse_output_and_display(output_content, job_id, cpus, mem, gpu):
         cpus (int or None): The number of CPUs requested for the job.
         mem (str or None): The amount of memory requested for the job.
         gpu (bool): Whether a GPU was requested for the job.
+        pk_account (bool): Whether the job was submitted to the pkaiser_lab account.
     """
     if not output_content:
         print("[!] Cannot parse empty output content.", file=sys.stderr)
@@ -200,9 +201,15 @@ def parse_output_and_display(output_content, job_id, cpus, mem, gpu):
                 resource_str = ", ".join(requested_resources[:-1]) + f", and {requested_resources[-1]}"
             else:
                 resource_str = " and ".join(requested_resources)
-            job_spec_message += f" with {resource_str}."
-        else:
-            job_spec_message += " with default cluster resources."
+            job_spec_message += f" with {resource_str}"
+        
+        if pk_account:
+            job_spec_message += " under the 'pkaiser_lab' account"
+
+        if not requested_resources and not pk_account:
+            job_spec_message += " with default cluster resources"
+        
+        job_spec_message += "."
         
         print(job_spec_message)
 
@@ -222,16 +229,18 @@ def main():
     parser = argparse.ArgumentParser(
         description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
         epilog="Example usage:\n"
-               "   # Request a server with specific resources\n"
-               "   poetry run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
-               "   # Request a server with a GPU (and default CPU/mem)\n"
-               "   poetry run python hpc_automator.py create --gpu\n\n"
-               "   # Request a GPU with specific CPU/mem\n"
-               "   poetry run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
-               "   # Request a server in the 'free' partition\n"
-               "   poetry run python hpc_automator.py create --free\n\n"
-               "   # Cancel a running server\n"
-               "   poetry run python hpc_automator.py cancel 123456",
+               "  # Request a server with specific resources\n"
+               "  poetry run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
+               "  # Request a server with a GPU (and default CPU/mem)\n"
+               "  poetry run python hpc_automator.py create --gpu\n\n"
+               "  # Request a GPU with specific CPU/mem\n"
+               "  poetry run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
+               "  # Request a server in the 'free' partition\n"
+               "  poetry run python hpc_automator.py create --free\n\n"
+               "  # Request a server under the 'pkaiser_lab' account\n"
+               "  poetry run python hpc_automator.py create --cpus 4 --pk_account\n\n"
+               "  # Cancel a running server\n"
+               "  poetry run python hpc_automator.py cancel 123456",
         formatter_class=argparse.RawTextHelpFormatter
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Available actions')
@@ -263,6 +272,11 @@ def main():
         '--free',
         action='store_true',
         help='Request a job in the "free" partition. This will add "-p free" to the Slurm command. Mutually exclusive with --gpu.'
+    )
+    parser_create.add_argument(
+        '--pk_account',
+        action='store_true',
+        help='Submit the job under the pkaiser_lab account via --account=pkaiser_lab.'
     )
 
     # Cancel command - stops a running job.
@@ -308,6 +322,9 @@ def main():
 
         # Build the sbatch command parts in the correct order
         sbatch_options = []
+        if args.pk_account:
+            sbatch_options.append('--account=pkaiser_lab')
+            
         if args.gpu:
             sbatch_options.append('-p free-gpu --gres=gpu:V100:1')
         elif args.free: # Only add -p free if --free is explicitly used
@@ -328,7 +345,7 @@ def main():
         if job_id:
             output_content = get_job_output(client, job_id)
             if output_content:
-                parse_output_and_display(output_content, job_id, args.cpus, args.mem, args.gpu)
+                parse_output_and_display(output_content, job_id, args.cpus, args.mem, args.gpu, args.pk_account)
             else:
                 print("[!] Failed to retrieve job output. Please log in manually to check the job status.")
                 print(f"    Check for a file named 'vscode-sshd-{job_id}.out' in your home directory.")
