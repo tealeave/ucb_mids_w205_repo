@@ -159,6 +159,10 @@ connect to Host -> add SSH host
 # Edit the config
 
 connect to the host hpc*
+
+# Neo4j
+htttps://{EC2_IP}:7473
+
 ```
 
 
