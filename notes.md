@@ -163,6 +163,15 @@ connect to the host hpc*
 # Neo4j
 htttps://{EC2_IP}:7473
 
+# Working with code agent
+Write Code: "As a seasoned programmer, write code in [programming language] to [perform action, e.g., sort a list]. Ensure it's efficient, well-structured, and follows best practices. Include testing and documentation for future reference."
+Debug Code: "Analyze this code: [insert code]. It's throwing this error: [insert error]. List the error-causing lines, explain why, and provide a detailed fix."
+Explain Code: "Explain this code: [insert code]. Describe its functionality, logic, and any potential improvements, making it clear for all programmer levels."
+Optimize Code: "Optimize this code: [insert code] for [goal, e.g., speed]. Suggest refactoring or rewriting, and explain the changes."
+Automate Task: "Write a script to automate [task description] in [environment, e.g., Linux]. Include error handling, comments, execution instructions, and dependencies."
+Code Review: "Create a code review checklist for a [project type, e.g., web app] in [programming language], covering readability, maintainability, performance, and security. Include explanations for each item."
+Generate Documentation: "Add detailed comments to this code: [insert code] in [programming language]. Include function purposes, parameters, return values, and follow commenting conventions."
+
 ```
 
 
