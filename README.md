@@ -1,12 +1,68 @@
-# Moved to bCourses - all of the content in this repo has been moved to bCourses, and as of April 15, 2022, is no longer being updated.  Please use bCourses for the most recent, up to date version. This repo will be deleted once we are sure we have moved everything to bCourses correctly. 
-
 # UC Berkeley iSchool MIDS Program 
 
 # w205 Fundamentals of Data Engineering
 
 For the new students, welcome to Berkeley, welcome to the iSchool, and welcome to the MIDS program!
 
-For all students, welcome to w205! 
+For all students, welcome to w205!
+
+## Setup Instructions
+
+This repository uses [uv](https://docs.astral.sh/uv/) for Python package management and version management.
+
+### Prerequisites
+
+- [uv](https://docs.astral.sh/uv/) - Modern Python package manager
+
+### Installation
+
+1. **Install uv** (if not already installed):
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. **Clone and setup the repository**:
+   ```bash
+   git clone <repository-url>
+   cd ucb_mids_w205_repo
+   uv sync
+   ```
+
+3. **Activate the environment**:
+   ```bash
+   source .venv/bin/activate
+   ```
+
+### Running Scripts
+
+Use `uv run` to execute Python scripts with the project dependencies:
+
+```bash
+# Run Jupyter notebooks
+uv run jupyter lab
+
+# Run the HPC automator script
+uv run python uci/hpc_automator.py --help
+
+# Example: Request GPU resources on HPC
+uv run python uci/hpc_automator.py create --gpu --mem 16G
+```
+
+### Managing Dependencies
+
+```bash
+# Add a new dependency
+uv add package-name
+
+# Add a development dependency
+uv add --dev package-name
+
+# Remove a dependency
+uv remove package-name
+
+# Update all dependencies
+uv sync --upgrade
+``` 
 
 Our goal is to help you be extremely successful in this course, and this repo has a lot of resources to help you achieve that goal.
 

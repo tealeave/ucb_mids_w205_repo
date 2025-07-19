@@ -363,7 +363,7 @@ def parse_output_and_display(output_content, job_id, cpus, mem, gpu, pk_account)
         print(job_spec_message)
 
         print(f"To stop this server later, run:")
-        print(f"poetry run python {os.path.basename(sys.argv[0])} cancel {job_id}")
+        print(f"uv run python {os.path.basename(sys.argv[0])} cancel {job_id}")
         print("="*50)
 
     else:
@@ -379,19 +379,19 @@ def main():
         description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
         epilog="Example usage:\n"
                "  # Request a server with specific resources\n"
-               "  poetry run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
+               "  uv run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
                "  # Request a server with a GPU (and default CPU/mem)\n"
-               "  poetry run python hpc_automator.py create --gpu\n\n"
+               "  uv run python hpc_automator.py create --gpu\n\n"
                "  # Request a GPU with specific CPU/mem\n"
-               "  poetry run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
+               "  uv run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
                "  # Request a server in the 'free' partition\n"
-               "  poetry run python hpc_automator.py create --free\n\n"
+               "  uv run python hpc_automator.py create --free\n\n"
                "  # Request a server under the 'pkaiser_lab' account\n"
-               "  poetry run python hpc_automator.py create --cpus 4 --pk_account\n\n"
+               "  uv run python hpc_automator.py create --cpus 4 --pk_account\n\n"
                "  # Check current jobs\n"
-               "  poetry run python hpc_automator.py jobs\n\n"
+               "  uv run python hpc_automator.py jobs\n\n"
                "  # Cancel a running server\n"
-               "  poetry run python hpc_automator.py cancel 123456",
+               "  uv run python hpc_automator.py cancel 123456",
         formatter_class=argparse.RawTextHelpFormatter
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Available actions')

@@ -150,7 +150,7 @@ srun -p free --nodes=1 --ntasks=4 --mem=32G --pty /bin/bash -i
 srun -p free-gpu --ntasks=4 --gres=gpu:V100:1 --pty /bin/bash -i
 
 # Can get a 2 cpu GPU node
-poetry run python hpc_automator.py create --gpu --mem 16G  
+uv run python hpc_automator.py create --gpu --mem 16G  
 
 cat vscode-sshd-39185957.out
 

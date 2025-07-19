@@ -29,28 +29,13 @@ RUN apt-get update \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# # 3) Switch to non-root for pyenv & Poetry
-# USER w205
-# ENV PYENV_ROOT=/home/w205/.pyenv \
-#     PATH=/home/w205/.pyenv/bin:/home/w205/.pyenv/shims:$PATH
+# 3) Switch to non-root for uv installation
+USER w205
 
-# # 4) Install pyenv and Python 3.10.12
-# RUN git clone https://github.com/pyenv/pyenv.git $PYENV_ROOT \
-#  && echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc \
-#  && echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc \
-#  && echo 'eval "$(pyenv init --path)"' >> ~/.bashrc \
-#  && sudo apt-get update \
-#  && sudo apt-get install -y --no-install-recommends \
-#       build-essential libssl-dev zlib1g-dev \
-#       libbz2-dev libreadline-dev libsqlite3-dev \
-#       curl llvm libncurses5-dev libncursesw5-dev \
-#       xz-utils tk-dev \
-#  && pyenv install 3.10.12 \
-#  && pyenv global 3.10.12
-
-# # 5) Install Poetry
-# RUN curl -sSL https://install.python-poetry.org | python3 - \
-#  && echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+# 4) Install uv for Python package management
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+ && echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc \
+ && echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 
 # 6) Fix NVM ownership so w205 can manage it
 USER root
@@ -86,7 +71,7 @@ RUN git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HO
 
 # Corrected .zshrc modifications
 RUN sed -i 's/^ZSH_THEME=".*"/ZSH_THEME="powerlevel10k\/powerlevel10k"/' $HOME/.zshrc && \
-    sed -i 's/^plugins=(git zsh-autosuggestions pyenv)/plugins=(git zsh-autosuggestions)/' $HOME/.zshrc && \
+    sed -i 's/^plugins=(git)/plugins=(git zsh-autosuggestions)/' $HOME/.zshrc && \
     echo '\n# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.' >> $HOME/.zshrc && \
     echo '[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh' >> $HOME/.zshrc
 
