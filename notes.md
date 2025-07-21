@@ -149,16 +149,23 @@ srun -p free-gpu --gres=gpu:V100:1 --pty /bin/bash -i
 srun -p free --nodes=1 --ntasks=4 --mem=32G --pty /bin/bash -i
 srun -p free-gpu --ntasks=4 --gres=gpu:V100:1 --pty /bin/bash -i
 
-# Can get a 2 cpu GPU node
-uv run python hpc_automator.py create --gpu --mem 16G  
+# Different request formt
+uv run python hpc_automator.py create --gpu --mem 16G --free
+uv run hpc_automator.py create --cpus 32 --mem 64G --free
 
+# Get the proxyjump config, paste it to SSH config
 cat vscode-sshd-39185957.out
 
-connect to Host -> add SSH host
+# Connect
+Remote SSH -> connect to Host
 
-# Edit the config
+# When prompted, paste in
+hpc3-XX-XX
 
-connect to the host hpc*
+# Important folders on HPC3
+/pub/ddlin/projects/
+/share/crsp/lab/pkaiser/ddlin/
+
 
 # Neo4j
 htttps://{EC2_IP}:7473
