@@ -169,3 +169,8 @@ hpc3-XX-XX
 
 # Neo4j
 htttps://{EC2_IP}:7473
+
+# Run a local ollama for auto complete
+ollama run qwen2.5-coder:1.5b
+
+# Is continue working?
