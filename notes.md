@@ -139,18 +139,11 @@ scp mids-205-ec2:/home/w205/user/certificates/lab_week_04_cert.txt attendance/
 ssh hpc3.rcic.uci.edu
 
 # Submit job for VScode
-sbatch --ntasks=4 /opt/rcic/scripts/vscode-sshd.sh
-sbatch -p free-gpu --gres=gpu:V100:1 --ntasks=4  --mem=16G /opt/rcic/scripts/vscode-sshd.sh
-sbatch -p free --cpus-per-task=4 /opt/rcic/scripts/vscode-sshd.sh
-sbatch -p free-gpu --ntasks=4 --gres=gpu:V100:1 /opt/rcic/scripts/vscode-sshd.sh
-
-# Request interactive resources and GPU node, work in progress
-srun -p free-gpu --gres=gpu:V100:1 --pty /bin/bash -i
-srun -p free --nodes=1 --ntasks=4 --mem=32G --pty /bin/bash -i
-srun -p free-gpu --ntasks=4 --gres=gpu:V100:1 --pty /bin/bash -i
+sbatch -p free --ntasks=16 --mem=64G /opt/rcic/scripts/vscode-sshd.sh
+sbatch -p free-gpu --mem=16G --gres=gpu:V100:1 /opt/rcic/scripts/vscode-sshd.sh
 
 # Different request formt
-uv run python hpc_automator.py create --gpu --mem 16G --free
+uv run python hpc_automator.py create --gpu --mem 16G
 uv run hpc_automator.py create --cpus 32 --mem 64G --free
 
 # Get the proxyjump config, paste it to SSH config
@@ -165,12 +158,18 @@ hpc3-XX-XX
 # Important folders on HPC3
 /pub/ddlin/projects/
 /share/crsp/lab/pkaiser/ddlin/
-
+/share/crsp/lab/pkaiser/ddlin/cell_fate
+/share/crsp/lab/pkaiser/ddlin/mids/DATASCI207_Bird_Sounds
 
 # Neo4j
 htttps://{EC2_IP}:7473
 
-# Run a local ollama for auto complete
-ollama run qwen2.5-coder:1.5b
 
-# Is continue working?
+Data/Model Enhancements:
+
+Enable full CV folds (selected_folds=[0,1,2,3]) for averaged metrics—current combined train/val might inflate overfitting.
+Upgrade to larger inputs (dim=64) or pre-trained backbones (e.g., EfficientNet on spectrograms) for better feature extraction.
+If Mammalia/Insecta lag, inspect spectrograms (plot a few per class) to check for quality issues.
+
+
+Experiment Tracking: Log per-run metrics in a table (e.g., Pandas DF in notebook) with columns: "Run ID", "Macro F1", "Minority Avg F1", "Changes". Aim for 2-3 ablations (e.g., focal loss vs. baseline).
