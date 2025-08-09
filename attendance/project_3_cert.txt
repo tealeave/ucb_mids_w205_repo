@@ -1,0 +1,14 @@
+{
+    "warning": "Do NOT change any data in this file.  The data in this file is protected by a digital signature.  If any data in this file is changed, the digital signature will be invalid.",
+    "digital_signature": "7c24a85f9a52aeb3c776358ddf26d6ecb388e8f63b5e1ab0176f33e862de22ec",
+    "project": 3,
+    "timestamp": "2025-08-08 10:43:20.306376 Pacific",
+    "pull_request_url": "https://github.com/mids-w205/project-3-ddlin-mids/pull/1",
+    "aws_id": "134051051883",
+    "vm_instance_id": "i-054a2b0ad9602b0c3",
+    "vm_timestamp": "2025-05-10 15:54:23.238861 Pacific",
+    "preferred_name": "David Da-Wei Lin",
+    "preferred_pronouns": "He/Him",
+    "slack_username": "U081R1P0N06",
+    "github_username": "ddlin-mids"
+}

@@ -164,12 +164,3 @@ hpc3-XX-XX
 # Neo4j
 htttps://{EC2_IP}:7473
 
-
-Data/Model Enhancements:
-
-Enable full CV folds (selected_folds=[0,1,2,3]) for averaged metrics—current combined train/val might inflate overfitting.
-Upgrade to larger inputs (dim=64) or pre-trained backbones (e.g., EfficientNet on spectrograms) for better feature extraction.
-If Mammalia/Insecta lag, inspect spectrograms (plot a few per class) to check for quality issues.
-
-
-Experiment Tracking: Log per-run metrics in a table (e.g., Pandas DF in notebook) with columns: "Run ID", "Macro F1", "Minority Avg F1", "Changes". Aim for 2-3 ablations (e.g., focal loss vs. baseline).
