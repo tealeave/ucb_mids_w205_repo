@@ -18,4 +18,9 @@
 When I am coding with AI there are long breaks into between me giving me commands to the AI. Typically I spend that time doom scrolling which distracts me and pu†s me in a bad mental state. I'd like to use that time now to chat with you and generate new ideas, and also reflect on my other ideas and businesses and content. I'm not sure how I'd like to use this chat or what role I'd like you to play, but I think ti could be much more useful than me doom scrolling. What do you think? What could be the best way for us to use this chat?
 
 ## As a senior data scientist
-As a senior data scientist, thoroughly review these notebooks and scripts. For function > 20 lines, provide complete code blocks with your fix instead of partial snippets. UltraThink and tell me how to fix this error.
+As a senior data scientist, thoroughly review my notebooks and scripts. My code base is @notebooks/notebooks_dl/keras_notebooks/
+
+The main driver notebook is @notebooks/notebooks_dl/keras_notebooks/03_rescnn_training_trials_aug_tl_kt.ipynb
+UltraThink and tell me your plan
+
+For function > 20 lines, provide complete code blocks with your fix instead of partial snippets. UltraThink and tell me how to fix this error.

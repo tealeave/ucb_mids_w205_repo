@@ -159,8 +159,9 @@ hpc3-XX-XX
 /pub/ddlin/projects/
 /share/crsp/lab/pkaiser/ddlin/
 /share/crsp/lab/pkaiser/ddlin/cell_fate
-/share/crsp/lab/pkaiser/ddlin/mids/DATASCI207_Bird_Sounds
+/share/crsp/lab/pkaiser/ddlin/mids/datasci-207/DATASCI207_Bird_Sounds
+/share/crsp/lab/pkaiser/ddlin/mids/datasci-241/mids-w241
+/share/crsp/lab/pkaiser/ddlin/mids/datasci-266/2025-fall-main
 
 # Neo4j
 htttps://{EC2_IP}:7473
-
