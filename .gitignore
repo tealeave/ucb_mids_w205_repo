@@ -6,6 +6,7 @@ labs_on_vm/week_02/geojson_data
 gmap_api_key.txt
 w205.key
 w205_cert.pem
+lambda_file_sys_key.pem
 
 # Suggested additions
 # Jupyter Notebook checkpoints
