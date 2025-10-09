@@ -377,12 +377,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
         epilog="Example usage:\n"
-               "  # Request a server with specific resources\n"
+               "  # Request a server with specific resources (CPU only)\n"
                "  uv run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
-               "  # Request a server with a GPU (and default CPU/mem)\n"
+               "  # Request a server with a GPU (CPU auto-assigned by cluster)\n"
                "  uv run python hpc_automator.py create --gpu\n\n"
-               "  # Request a GPU with specific CPU/mem\n"
-               "  uv run python hpc_automator.py create --gpu --cpus 4 --mem 16G\n\n"
+               "  # Request a specific GPU type (CPU auto-assigned)\n"
+               "  uv run python hpc_automator.py create --gpu --gpu-type A100\n\n"
+               "  # Request a GPU with memory only (no CPU specification)\n"
+               "  uv run python hpc_automator.py create --gpu --mem 16G\n\n"
                "  # Request a server in the 'free' partition\n"
                "  uv run python hpc_automator.py create --free\n\n"
                "  # Request a server under the 'pkaiser_lab' account\n"
@@ -404,11 +406,15 @@ def main():
         help='Submits a new Slurm job to start a VS Code server.',
         description='Creates a new VS Code server job, waits for it to start, and provides the necessary SSH configuration.'
     )
-    parser_create.add_argument('--cpus', type=int, help='Number of CPUs to request (e.g., 4).')
+    parser_create.add_argument('--cpus', type=int, help='Number of CPUs to request (e.g., 4). Cannot be used with --gpu.')
     parser_create.add_argument('--mem', type=str, help='Amount of memory to request (e.g., "16G").')
     parser_create.add_argument(
         '--gpu', action='store_true',
-        help=f'Request a {DEFAULT_GPU_TYPE} GPU for the job. Adds "-p {DEFAULT_GPU_PARTITION} --gres=gpu:{DEFAULT_GPU_TYPE}:{DEFAULT_GPU_COUNT}".'
+        help=f'Request a GPU for the job. Adds "-p {DEFAULT_GPU_PARTITION} --gres=gpu:{{GPU_TYPE}}:{DEFAULT_GPU_COUNT}". Cannot be used with --cpus.'
+    )
+    parser_create.add_argument(
+        '--gpu-type', type=str, choices=['A30', 'A100', 'L40S', 'V100'], default=DEFAULT_GPU_TYPE,
+        help=f'GPU type to request when using --gpu (default: {DEFAULT_GPU_TYPE}). Choices: A30, A100, L40S, V100.'
     )
     parser_create.add_argument(
         '--free', action='store_true',
@@ -483,7 +489,8 @@ def main():
 
         # partitions/GPUs
         if args.gpu:
-            sbatch_options.append(f'-p {DEFAULT_GPU_PARTITION} --gres=gpu:{DEFAULT_GPU_TYPE}:{DEFAULT_GPU_COUNT}')
+            gpu_type = args.gpu_type if args.gpu_type else DEFAULT_GPU_TYPE
+            sbatch_options.append(f'-p {DEFAULT_GPU_PARTITION} --gres=gpu:{gpu_type}:{DEFAULT_GPU_COUNT}')
             if active_blacklist:
                 sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
         elif args.free:
@@ -491,8 +498,8 @@ def main():
             if args.apply_blacklist_to_all and active_blacklist:
                 sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
 
-        # resources
-        if args.cpus:
+        # resources - only add CPU for non-GPU jobs
+        if args.cpus and not args.gpu:
             sbatch_options.append(f'--ntasks={args.cpus}')
         if args.mem:
             mem = sanitize_resource_param(args.mem, "memory")
@@ -519,6 +526,11 @@ def main():
                 print("[!] Error: --gpu and --free options are mutually exclusive. Please choose one.", file=sys.stderr)
                 return
 
+            # Validate mutual exclusivity of --gpu and --cpus
+            if args.gpu and args.cpus:
+                print("[!] Error: --gpu and --cpus options are mutually exclusive. GPU jobs cannot specify CPU count.", file=sys.stderr)
+                return
+
             # Validate and sanitize resource parameters
             if args.mem:
                 args.mem = sanitize_resource_param(args.mem, "memory")
@@ -538,7 +550,8 @@ def main():
                     sbatch_options.append(f'--account={DEFAULT_ACCOUNT}')
 
                 if args.gpu:
-                    sbatch_options.append(f'-p {DEFAULT_GPU_PARTITION} --gres=gpu:{DEFAULT_GPU_TYPE}:{DEFAULT_GPU_COUNT}')
+                    gpu_type = args.gpu_type if args.gpu_type else DEFAULT_GPU_TYPE
+                    sbatch_options.append(f'-p {DEFAULT_GPU_PARTITION} --gres=gpu:{gpu_type}:{DEFAULT_GPU_COUNT}')
                     if active_blacklist:
                         sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
                 elif args.free:
@@ -550,7 +563,8 @@ def main():
                     if args.apply_blacklist_to_all and active_blacklist:
                         sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
 
-                if args.cpus:
+                # Only add CPU request for non-GPU jobs to avoid scheduling conflicts
+                if args.cpus and not args.gpu:
                     sbatch_options.append(f'--ntasks={args.cpus}')
                 if args.mem:
                     sbatch_options.append(f'--mem={args.mem}')
@@ -578,9 +592,10 @@ def main():
                         print("[!] Exceeded maximum attempts due to blacklist collisions.", file=sys.stderr)
                         return
                 elif output_content:
+                    gpu_type = args.gpu_type if args.gpu_type else DEFAULT_GPU_TYPE
                     parse_output_and_display(
                         output_content, job_id, args.cpus, args.mem, args.gpu,
-                        args.pk_account, DEFAULT_GPU_TYPE, DEFAULT_GPU_COUNT
+                        args.pk_account, gpu_type, DEFAULT_GPU_COUNT
                     )
                     break
                 else:
