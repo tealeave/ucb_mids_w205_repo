@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+
+  anaconda:
+    image: w205_anaconda
+    stdin_open: true
+    tty: true
+    volumes:
+      - /home/w205/user:/user
+      - /home/w205/docker/mounts/anaconda/environments:/opt/conda/envs
+    expose:
+      - "8888"
+    ports:
+      - "8888:8888"
+

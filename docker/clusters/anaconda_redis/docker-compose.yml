@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+
+
+  redis:
+    image: w205_redis
+    volumes: 
+      - /home/w205/docker/mounts/redis/data:/data
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"
+
+  anaconda:
+    image: w205_anaconda
+    stdin_open: true
+    tty: true
+    volumes:
+      - /home/w205/user:/user
+      - /home/w205/docker/mounts/anaconda/environments:/opt/conda/envs
+    expose:
+      - "8888"
+    ports:
+      - "8888:8888"
+
+

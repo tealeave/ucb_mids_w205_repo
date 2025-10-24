@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - "code"
+      - "tunnel"
+      - "--name"
+      - "w205-devcontainer"
+      - "--accept-server-license-terms"
+    volumes:
+      - /home/w205/user:/workspace/user      # Your .ipynb files are here, accessible to the app
+      - /home/w205/backups:/workspace/backups # Backup directory
+      - /home/w205/docker:/workspace/docker   # Docker directory
+      - /home/w205/scripts:/workspace/scripts # Scripts directory
+      - /home/w205/temp:/workspace/temp       # Temporary files directory
+      # --- THIS IS THE IMPORTANT LINE FOR SSH KEYS ---
+      - /home/w205/.ssh:/home/w205/.ssh:ro    # Mount VM's .ssh to container's .ssh
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    depends_on:
+      - anaconda
+      - mongo
+    environment:
+      ANACONDA_HOST: anaconda
+      ANACONDA_PORT: 8888
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+
+  mongo:
+    image: w205_mongo
+    volumes:
+      - /home/w205/user:/user
+      - /home/w205/docker/mounts/mongo/data:/data/db
+    expose:
+      - "27017"
+    ports:
+      - "27017:27017"
+
+  anaconda:
+    image: w205_anaconda
+    stdin_open: true
+    tty: true
+    command:
+      - "jupyter"
+      - "notebook"
+      - "--ip=0.0.0.0"
+      - "--port=8888"
+      - "--no-browser"
+      - "--allow-root"
+      - "--NotebookApp.token="
+      - "--NotebookApp.password="
+      - "--NotebookApp.certfile="
+      - "--NotebookApp.keyfile="
+      - "--NotebookApp.allow_origin=*"
+      - "--NotebookApp.notebook_dir=/user"
+    volumes:
+      - /home/w205/user:/user # Your .ipynb files are here, accessible to anaconda
+      - /home/w205/docker/mounts/anaconda/environments:/opt/conda/envs # Persisted conda envs
+    expose:
+      - "8888"
+      - "443"
+    ports:
+      - "8888:8888"
+      - "443:443"
+
+networks:
+  default:
+    driver: bridge

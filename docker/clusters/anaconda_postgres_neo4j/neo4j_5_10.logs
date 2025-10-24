@@ -1,0 +1,29 @@
+Attaching to anaconda_postgres_neo4j_neo4j_1
+[36mneo4j_1     |[0m Warning: Folder mounted to "/data" is not writable from inside container. Changing folder owner to neo4j.
+[36mneo4j_1     |[0m Fetching versions.json for Plugin 'graph-data-science' from https://graphdatascience.ninja/versions.json
+[36mneo4j_1     |[0m Installing Plugin 'graph-data-science' from https://graphdatascience.ninja/neo4j-graph-data-science-2.4.5.jar to /var/lib/neo4j/plugins/graph-data-science.jar 
+[36mneo4j_1     |[0m Applying default values for plugin graph-data-science to neo4j.conf
+[36mneo4j_1     |[0m Changed password for user 'neo4j'. IMPORTANT: this change will only take effect if performed before the database is started for the first time.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.553+0000 WARN  Use of deprecated setting 'dbms.directories.import'. It is replaced by 'server.directories.import'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.557+0000 WARN  Use of deprecated setting 'dbms.directories.logs'. It is replaced by 'server.directories.logs'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.558+0000 WARN  Use of deprecated setting 'dbms.connector.http.enabled'. It is replaced by 'server.http.enabled'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.558+0000 WARN  Use of deprecated setting 'dbms.connector.bolt.tls_level'. It is replaced by 'server.bolt.tls_level'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.559+0000 WARN  Use of deprecated setting 'dbms.connector.https.enabled'. It is replaced by 'server.https.enabled'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.559+0000 WARN  Use of deprecated setting 'dbms.connector.bolt.enabled'. It is replaced by 'server.bolt.enabled'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.559+0000 WARN  Use of deprecated setting 'dbms.windows_service_name'. It is replaced by 'server.windows_service_name'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.560+0000 WARN  Use of deprecated setting 'dbms.tx_log.rotation.retention_policy'. It is replaced by 'db.tx_log.rotation.retention_policy'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.560+0000 WARN  Use of deprecated setting 'dbms.tx_state.memory_allocation'. It is replaced by 'db.tx_state.memory_allocation'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.561+0000 WARN  Use of deprecated setting 'dbms.default_listen_address'. It is replaced by 'server.default_listen_address'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.561+0000 WARN  Use of deprecated setting 'dbms.jvm.additional'. It is replaced by 'server.jvm.additional'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.562+0000 WARN  Use of deprecated setting 'dbms.memory.pagecache.size'. It is replaced by 'server.memory.pagecache.size'.
+[36mneo4j_1     |[0m 2023-08-26 18:02:19.573+0000 INFO  Starting...
+[36mneo4j_1     |[0m 2023-08-26 18:02:20.791+0000 INFO  This instance is ServerId{253d1ab7} (253d1ab7-82ad-4945-a97d-b3a9ebf6cde4)
+[36mneo4j_1     |[0m 2023-08-26 18:02:22.194+0000 INFO  ======== Neo4j 5.10.0 ========
+[36mneo4j_1     |[0m 2023-08-26 18:02:22.325+0000 INFO  GDS compatibility: for Neo4j Settings 4.4 -- not available, for Neo4j Settings 5.1 -- not available, for Neo4j Settings 5.2.0 -- not available, for Neo4j Settings 5.3 -- not available, for Neo4j Settings 5.4 -- not available, for Neo4j Settings 5.5 -- not available, for Neo4j Settings 5.6 -- not available, for Neo4j Settings 5.7 -- not available, for Neo4j Settings 5.8 -- not available, for Neo4j Settings 5.9 -- not available, for Neo4j Settings 5.10 -- available, for Neo4j Settings 5.11 -- not available, selected: Neo4j Settings 5.10
+[36mneo4j_1     |[0m 2023-08-26 18:02:22.325+0000 INFO  GDS compatibility: for Neo4j 4.4 -- not available, for Neo4j 5.1 -- not available, for Neo4j 5.2.0 -- not available, for Neo4j 5.3 -- not available, for Neo4j 5.4 -- not available, for Neo4j 5.5 -- not available, for Neo4j 5.6 -- not available, for Neo4j 5.7 -- not available, for Neo4j 5.8 -- not available, for Neo4j 5.9 -- not available, for Neo4j 5.10 -- available, for Neo4j 5.11 -- not available, selected: Neo4j 5.10
+[36mneo4j_1     |[0m 2023-08-26 18:02:36.810+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+[36mneo4j_1     |[0m 2023-08-26 18:02:37.835+0000 INFO  Remote interface available at https://localhost:7473/
+[36mneo4j_1     |[0m 2023-08-26 18:02:37.839+0000 INFO  id: 84E62673ABA5A3600D119F14B20C7C191B078081C8DE2AA2BB6388B2F522D59A
+[36mneo4j_1     |[0m 2023-08-26 18:02:37.840+0000 INFO  name: system
+[36mneo4j_1     |[0m 2023-08-26 18:02:37.840+0000 INFO  creationDate: 2023-08-26T18:02:23.416Z
+[36mneo4j_1     |[0m 2023-08-26 18:02:37.841+0000 INFO  Started.

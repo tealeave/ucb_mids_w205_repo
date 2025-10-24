@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+
+
+  neo4j:
+    image: w205_neo4j
+    volumes:
+      - /home/w205/user:/user
+      - /home/w205/docker/mounts/neo4j/data:/data
+    environment:
+      NEO4J_PLUGINS: '["graph-data-science"]'
+      NEO4J_AUTH: 'neo4j/ucb_mids_w205'
+    expose:
+      - "7473"
+      - "7474"
+      - "7687"
+    ports:
+      - "7473:7473"
+      - "7474:7474"
+      - "7687:7687"
+
+  anaconda:
+    image: w205_anaconda
+    stdin_open: true
+    tty: true
+    volumes:
+      - /home/w205/user:/user
+      - /home/w205/docker/mounts/anaconda/environments:/opt/conda/envs
+    expose:
+      - "8888"
+      - "443"
+    ports:
+      - "8888:8888"
+      - "443:443"
+
+

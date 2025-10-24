@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - "code"
+      - "tunnel"
+      - "--name"
+      - "w205-devcontainer"
+      - "--accept-server-license-terms"
+    volumes:
+      - /home/w205/user:/workspace/user      # Your .ipynb files are here, accessible to the app
+      - /home/w205/backups:/workspace/backups # Backup directory
+      - /home/w205/docker:/workspace/docker   # Docker directory
+      - /home/w205/scripts:/workspace/scripts # Scripts directory
+      - /home/w205/temp:/workspace/temp       # Temporary files directory
+      # --- THIS IS THE IMPORTANT LINE FOR SSH KEYS ---
+      - /home/w205/.ssh:/home/w205/.ssh:ro    # Mount VM's .ssh to container's .ssh
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    depends_on:
+      - anaconda
+      - neo4j
+    environment:
+      ANACONDA_HOST: anaconda
+      ANACONDA_PORT: 8888
+      NEO4J_HOST: neo4j
+      NEO4J_BOLT_PORT: 7687
+      NEO4J_HTTP_PORT: 7474
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ucb_mids_w205
+
+  neo4j:
+    image: w205_neo4j
+    volumes:
+      - /home/w205/user:/user
+      - /home/w205/docker/mounts/neo4j/data:/data
+    environment:
+      NEO4J_PLUGINS: '["graph-data-science"]'
+      NEO4J_AUTH: 'neo4j/ucb_mids_w205'
+    expose:
+      - "7473"
+      - "7474"
+      - "7687"
+    ports:
+      - "7473:7473"
+      - "7474:7474"
+      - "7687:7687"
+
+  anaconda:
+    image: w205_anaconda
+    stdin_open: true
+    tty: true
+    command:
+      - "jupyter"
+      - "notebook"
+      - "--ip=0.0.0.0"
+      - "--port=8888"
+      - "--no-browser"
+      - "--allow-root"
+      - "--NotebookApp.token="
+      - "--NotebookApp.password="
+      - "--NotebookApp.certfile="
+      - "--NotebookApp.keyfile="
+      - "--NotebookApp.allow_origin=*"
+      - "--NotebookApp.notebook_dir=/user"
+    volumes:
+      - /home/w205/user:/user # Your .ipynb files are here, accessible to anaconda
+      - /home/w205/docker/mounts/anaconda/environments:/opt/conda/envs # Persisted conda envs
+    expose:
+      - "8888"
+      - "443"
+    ports:
+      - "8888:8888"
+      - "443:443"
+
+networks:
+  default:
+    driver: bridge

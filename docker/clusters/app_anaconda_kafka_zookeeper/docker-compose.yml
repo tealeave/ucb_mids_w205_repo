@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # ──────────────────────────────────────────────
+  # Interactive dev container (VS Code tunnel)
+  # ──────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - "code"
+      - "tunnel"
+      - "--name"
+      - "w205-devcontainer"
+      - "--accept-server-license-terms"
+    volumes:
+      - /home/w205/user:/workspace/user          # Notebooks / source
+      - /home/w205/backups:/workspace/backups    # Back‑ups
+      - /home/w205/docker:/workspace/docker      # Docker files
+      - /home/w205/scripts:/workspace/scripts    # Utility scripts
+      - /home/w205/temp:/workspace/temp          # Temp files
+      - /home/w205/.ssh:/home/w205/.ssh:ro       # SSH keys (read‑only)
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    depends_on:
+      - anaconda
+      - kafka
+      - zookeeper
+    environment:
+      # ---- your services ----
+      ANACONDA_HOST: anaconda
+      ANACONDA_PORT: 8888
+      KAFKA_HOST: kafka
+      KAFKA_PORT: 29092        # match KAFKA_ADVERTISED_LISTENERS
+      ZOOKEEPER_HOST: zookeeper
+      ZOOKEEPER_PORT: 32181
+
+  # ──────────────────────────────────────────────
+  # Jupyter / Conda
+  # ──────────────────────────────────────────────
+  anaconda:
+    image: w205_anaconda
+    stdin_open: true
+    tty: true
+    command:
+      - "jupyter"
+      - "notebook"
+      - "--ip=0.0.0.0"
+      - "--port=8888"
+      - "--no-browser"
+      - "--allow-root"
+      - "--NotebookApp.token="
+      - "--NotebookApp.password="
+      - "--NotebookApp.certfile="
+      - "--NotebookApp.keyfile="
+      - "--NotebookApp.allow_origin=*"
+      - "--NotebookApp.notebook_dir=/user"
+    volumes:
+      - /home/w205/user:/user
+      - /home/w205/docker/mounts/anaconda/environments:/opt/conda/envs
+    expose:
+      - "8888"
+    ports:
+      - "8888:8888"
+
+  # ──────────────────────────────────────────────
+  # ZooKeeper
+  # ──────────────────────────────────────────────
+  zookeeper:
+    image: w205_zookeeper
+    volumes:
+      - /home/w205/docker/mounts/zookeeper/data:/var/lib/zookeeper/data
+      - /home/w205/docker/mounts/zookeeper/log:/var/lib/zookeeper/log
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+    expose:
+      - "2181"
+      - "2888"
+      - "32181"
+      - "3888"
+    extra_hosts:
+      - "moby:127.0.0.1"
+
+  # ──────────────────────────────────────────────
+  # Kafka broker
+  # ──────────────────────────────────────────────
+  kafka:
+    image: w205_kafka
+    # ✅ UPDATE DEPENDS_ON TO CHECK HEALTH
+    depends_on:
+      - zookeeper
+    # ✅ ADD PORT MAPPING FOR EXTERNAL ACCESS
+    ports:
+      - "9092:9092"
+    volumes:
+      - /home/w205/docker/mounts/kafka/data:/var/lib/kafka/data
+    # ✅ UPDATE ENVIRONMENT FOR ROBUST NETWORKING
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:32181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    expose:
+      - "9092"
+      - "29092"
+    extra_hosts:
+      - "moby:127.0.0.1"
+
+networks:
+  default:
+    driver: bridge
