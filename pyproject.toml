@@ -13,8 +13,8 @@ dependencies = [
     "nbconvert>=7.16.6",
 ]
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = []
 
 [tool.hatch.build.targets.wheel]
 packages = []

@@ -158,10 +158,9 @@ hpc3-XX-XX
 # Important folders on HPC3
 /pub/ddlin/projects/
 /share/crsp/lab/pkaiser/ddlin/
-/share/crsp/lab/pkaiser/ddlin/cell_fate
-/share/crsp/lab/pkaiser/ddlin/mids/datasci-266/
 /share/crsp/lab/pkaiser/ddlin/mids/datasci-241/mids-w241
 /share/crsp/lab/pkaiser/ddlin/mids/datasci-266/2025-fall-main
+/share/crsp/lab/pkaiser/ddlin/mids/datasci-266/mimic_nlp/
 
 # Neo4j
 htttps://{EC2_IP}:7473
