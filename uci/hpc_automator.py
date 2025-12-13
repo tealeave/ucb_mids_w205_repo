@@ -8,10 +8,10 @@ from contextlib import contextmanager
 
 # --- Configuration ---
 # The hostname for the HPC login node, which must match an entry in your ~/.ssh/config file.
-HPC_HOSTNAME = 'hpc3.rcic.uci.edu'
+HPC_HOSTNAME = "hpc3.rcic.uci.edu"
 
 # Base command to submit the Slurm job. The CPU count will be added dynamically.
-SBATCH_SCRIPT_PATH = '/opt/rcic/scripts/vscode-sshd.sh'
+SBATCH_SCRIPT_PATH = "/opt/rcic/scripts/vscode-sshd.sh"
 
 # Time in seconds to wait between checking for the output file.
 POLL_INTERVAL = 5
@@ -28,24 +28,29 @@ OUTPUT_FILE_PREFIX = "vscode-sshd-"
 OUTPUT_FILE_SUFFIX = ".out"
 
 # Resource defaults
-DEFAULT_GPU_TYPE = "A30"     # cluster default you’ve been using, there are also A100, L40S, V100
+DEFAULT_GPU_TYPE = (
+    "A30"  # cluster default you’ve been using, there are also A100, L40S, V100
+)
 DEFAULT_GPU_COUNT = 1
 DEFAULT_GPU_PARTITION = "free-gpu"
 DEFAULT_FREE_PARTITION = "free"
 DEFAULT_ACCOUNT = "pkaiser_lab"
 
 # Retry configuration
-MAX_RETRIES = 3                 # SSH command retries
-RETRY_DELAY = 2                 # seconds between SSH retries
-CREATE_MAX_ATTEMPTS = 3         # attempts to (re)submit on blacklist detection
+MAX_RETRIES = 3  # SSH command retries
+RETRY_DELAY = 2  # seconds between SSH retries
+CREATE_MAX_ATTEMPTS = 3  # attempts to (re)submit on blacklist detection
 
-# Node blacklist: these nodes will be excluded for GPU jobs by default
-# (You can override via CLI: --blacklist hpc3-gpu-l54-08,hpc3-gpu-l54-XX)
-BLACKLIST_NODES = ["hpc3-gpu-l54-08"]
+# Node blacklist for GPU jobs (applied when using --gpu)
+BLACKLIST_NODES_GPU = ["hpc3-gpu-l54-08"]
+
+# Node blacklist for regular CPU jobs (applied for non-GPU jobs)
+BLACKLIST_NODES_CPU = ["hpc3-l18-01"]
 
 # --------------------------------------------------------------------------------------
 # Utility / Validation
 # --------------------------------------------------------------------------------------
+
 
 def validate_job_id(job_id):
     """
@@ -55,16 +60,21 @@ def validate_job_id(job_id):
         return False
     return int(job_id) > 0
 
+
 def sanitize_resource_param(param, param_name):
     """
     Sanitizes resource parameters to prevent command injection.
     """
     if not param:
         return None
-    if any(char in param for char in [';', '&', '|', '$', '`', '(', ')', '<', '>', '"', "'"]):
+    if any(
+        char in param
+        for char in [";", "&", "|", "$", "`", "(", ")", "<", ">", '"', "'"]
+    ):
         print(f"[!] Invalid characters in {param_name}: {param}", file=sys.stderr)
         return None
     return param.strip()
+
 
 def sanitize_blacklist_nodes(nodes):
     """
@@ -89,6 +99,7 @@ def sanitize_blacklist_nodes(nodes):
             deduped.append(n)
     return deduped
 
+
 def execute_ssh_command_with_retry(client, command, max_retries=MAX_RETRIES):
     """
     Executes an SSH command with retry logic.
@@ -99,12 +110,18 @@ def execute_ssh_command_with_retry(client, command, max_retries=MAX_RETRIES):
             return stdin, stdout, stderr
         except Exception as e:
             if attempt < max_retries:
-                print(f"[!] SSH command failed (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                print(
+                    f"[!] SSH command failed (attempt {attempt + 1}/{max_retries + 1}): {e}"
+                )
                 print(f"    Retrying in {RETRY_DELAY} seconds...")
                 time.sleep(RETRY_DELAY)
             else:
-                print(f"[!] SSH command failed after {max_retries + 1} attempts: {e}", file=sys.stderr)
+                print(
+                    f"[!] SSH command failed after {max_retries + 1} attempts: {e}",
+                    file=sys.stderr,
+                )
                 return None, None, None
+
 
 @contextmanager
 def ssh_client_context(config):
@@ -126,41 +143,52 @@ def ssh_client_context(config):
             except Exception as e:
                 print(f"[!] Error closing SSH connection: {e}", file=sys.stderr)
 
+
 def get_ssh_client(config):
     """
     Creates and returns an authenticated SSH client using a parsed config.
     """
-    hostname = config['hostname']
-    username = config.get('user')
+    hostname = config["hostname"]
+    username = config.get("user")
 
     if not username:
-        print(f"[!] 'User' not specified in your SSH config for host '{HPC_HOSTNAME}'.", file=sys.stderr)
+        print(
+            f"[!] 'User' not specified in your SSH config for host '{HPC_HOSTNAME}'.",
+            file=sys.stderr,
+        )
         return None
 
     try:
         print(f"[*] Connecting to {hostname} as {username} using your SSH config...")
         client = paramiko.SSHClient()
         client.load_system_host_keys()
-        client.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
+        client.load_host_keys(os.path.expanduser("~/.ssh/known_hosts"))
         client.set_missing_host_key_policy(paramiko.RejectPolicy())
 
         client.connect(
             hostname=hostname,
             username=username,
-            key_filename=config.get('identityfile'),
-            sock=paramiko.ProxyCommand(config.get('proxycommand')) if config.get('proxycommand') else None,
-            timeout=SSH_TIMEOUT
+            key_filename=config.get("identityfile"),
+            sock=paramiko.ProxyCommand(config.get("proxycommand"))
+            if config.get("proxycommand")
+            else None,
+            timeout=SSH_TIMEOUT,
         )
         print("[+] Connection successful!")
         return client
     except Exception as e:
         print(f"[!] Connection failed: {e}", file=sys.stderr)
-        print("[!] Please ensure your SSH key is added to your ssh-agent or is not passphrase protected.", file=sys.stderr)
+        print(
+            "[!] Please ensure your SSH key is added to your ssh-agent or is not passphrase protected.",
+            file=sys.stderr,
+        )
         return None
+
 
 # --------------------------------------------------------------------------------------
 # Slurm helpers (submit, monitor, cancel)
 # --------------------------------------------------------------------------------------
+
 
 def submit_job(client, command):
     """
@@ -177,13 +205,15 @@ def submit_job(client, command):
         stderr_output = stderr.read().decode().strip()
 
         if exit_status != 0:
-            print(f"[!] Error submitting job. Exit Status: {exit_status}", file=sys.stderr)
+            print(
+                f"[!] Error submitting job. Exit Status: {exit_status}", file=sys.stderr
+            )
             if stderr_output:
                 print(f"    Stderr: {stderr_output}", file=sys.stderr)
             return None
 
         print(f"[+] Server response: {stdout_output}")
-        match = re.search(r'(\d+)', stdout_output)
+        match = re.search(r"(\d+)", stdout_output)
         if match:
             job_id = match.group(1)
             print(f"[+] Successfully submitted job. Job ID: {job_id}")
@@ -196,6 +226,7 @@ def submit_job(client, command):
         print(f"[!] Failed to execute sbatch command: {e}", file=sys.stderr)
         return None
 
+
 def cancel_job(client, job_id):
     """
     Executes the scancel command to cancel a running Slurm job.
@@ -204,7 +235,9 @@ def cancel_job(client, job_id):
     print(f"[*] Attempting to cancel job {job_id} with command: '{command}'")
     stdin, stdout, stderr = execute_ssh_command_with_retry(client, command)
     if not stdout:
-        print(f"[!] Failed to execute cancel command for job {job_id}.", file=sys.stderr)
+        print(
+            f"[!] Failed to execute cancel command for job {job_id}.", file=sys.stderr
+        )
         return
     exit_status = stdout.channel.recv_exit_status()
     stderr_output = stderr.read().decode().strip()
@@ -216,7 +249,11 @@ def cancel_job(client, job_id):
         if stderr_output:
             print(f"    Server error: {stderr_output}", file=sys.stderr)
         else:
-            print("    Unknown error. The job may have already finished or the ID is invalid.", file=sys.stderr)
+            print(
+                "    Unknown error. The job may have already finished or the ID is invalid.",
+                file=sys.stderr,
+            )
+
 
 def squeue_job_state_and_nodes(client, job_id):
     """
@@ -249,6 +286,7 @@ def squeue_job_state_and_nodes(client, job_id):
     nodes = [n.strip() for n in re.split(r"[,\s]+", nodelist) if n.strip()]
     return state, nodes
 
+
 def any_node_blacklisted(nodes, blacklist):
     """
     Returns True if any node is in the blacklist (exact match).
@@ -261,6 +299,7 @@ def any_node_blacklisted(nodes, blacklist):
             return True
     return False
 
+
 def get_job_output(client, job_id, blacklist_nodes=None, auto_cancel_on_blacklist=True):
     """
     Polls for the job output file, with a safety check to detect blacklisted node assignments.
@@ -268,7 +307,9 @@ def get_job_output(client, job_id, blacklist_nodes=None, auto_cancel_on_blacklis
     Otherwise, waits until JOB_COMPLETION_MARKER appears in the output file.
     """
     output_filename = f"{OUTPUT_FILE_PREFIX}{job_id}{OUTPUT_FILE_SUFFIX}"
-    print(f"[*] Waiting for the complete output file '{output_filename}' to be created...")
+    print(
+        f"[*] Waiting for the complete output file '{output_filename}' to be created..."
+    )
 
     start_time = time.time()
     while time.time() - start_time < MAX_WAIT_TIME:
@@ -276,8 +317,12 @@ def get_job_output(client, job_id, blacklist_nodes=None, auto_cancel_on_blacklis
         state, nodes = squeue_job_state_and_nodes(client, job_id)
         if nodes:
             print(f"    Job {job_id} state: {state}, node(s): {', '.join(nodes)}")
-            if auto_cancel_on_blacklist and any_node_blacklisted(nodes, blacklist_nodes or []):
-                print(f"[!] Job {job_id} landed on a blacklisted node ({', '.join(nodes)}). Cancelling and retrying...")
+            if auto_cancel_on_blacklist and any_node_blacklisted(
+                nodes, blacklist_nodes or []
+            ):
+                print(
+                    f"[!] Job {job_id} landed on a blacklisted node ({', '.join(nodes)}). Cancelling and retrying..."
+                )
                 cancel_job(client, job_id)
                 return "__BLACKLISTED__"
 
@@ -299,14 +344,21 @@ def get_job_output(client, job_id, blacklist_nodes=None, auto_cancel_on_blacklis
         print(f"    ...still waiting for complete file (elapsed: {elapsed}s)")
         time.sleep(POLL_INTERVAL)
 
-    print(f"[!] Timed out after {MAX_WAIT_TIME} seconds. Job may have failed to start or write output.", file=sys.stderr)
+    print(
+        f"[!] Timed out after {MAX_WAIT_TIME} seconds. Job may have failed to start or write output.",
+        file=sys.stderr,
+    )
     return None
+
 
 # --------------------------------------------------------------------------------------
 # Display helpers
 # --------------------------------------------------------------------------------------
 
-def parse_output_and_display(output_content, job_id, cpus, mem, gpu, pk_account, gpu_type, gpu_count):
+
+def parse_output_and_display(
+    output_content, job_id, cpus, mem, gpu, pk_account, gpu_type, gpu_count
+):
     """
     Parses the job output to find the SSH config and prints it along with a cancel command.
     """
@@ -314,21 +366,27 @@ def parse_output_and_display(output_content, job_id, cpus, mem, gpu, pk_account,
         print("[!] Cannot parse empty output content.", file=sys.stderr)
         return
 
-    config_block_match = re.search(r"(Host hpc3-\*.*?StrictHostKeyChecking no)", output_content, re.DOTALL)
+    config_block_match = re.search(
+        r"(Host hpc3-\*.*?StrictHostKeyChecking no)", output_content, re.DOTALL
+    )
 
     if config_block_match:
         config_block = config_block_match.group(1).strip()
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("🎉 VS Code SSH Configuration Ready! 🎉")
-        print("="*50)
+        print("=" * 50)
         print("\nCopy the following block into your local SSH config file.")
-        print("In VS Code, you can access this via 'Remote-SSH: Open Configuration File...'\n")
+        print(
+            "In VS Code, you can access this via 'Remote-SSH: Open Configuration File...'\n"
+        )
         print("-" * 50)
         print(config_block)
         print("-" * 50)
-        print("\nAfter adding it, use 'Remote-SSH: Connect to Host...' and select 'hpc3-*'.")
+        print(
+            "\nAfter adding it, use 'Remote-SSH: Connect to Host...' and select 'hpc3-*'."
+        )
 
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
 
         # Build the job specification message dynamically
         job_spec_message = f"✅ Job {job_id} is running"
@@ -342,7 +400,10 @@ def parse_output_and_display(output_content, job_id, cpus, mem, gpu, pk_account,
 
         if requested_resources:
             if len(requested_resources) > 2:
-                resource_str = ", ".join(requested_resources[:-1]) + f", and {requested_resources[-1]}"
+                resource_str = (
+                    ", ".join(requested_resources[:-1])
+                    + f", and {requested_resources[-1]}"
+                )
             else:
                 resource_str = " and ".join(requested_resources)
             job_spec_message += f" with {resource_str}"
@@ -359,7 +420,7 @@ def parse_output_and_display(output_content, job_id, cpus, mem, gpu, pk_account,
 
         print(f"To stop this server later, run:")
         print(f"uv run python {os.path.basename(sys.argv[0])} cancel {job_id}")
-        print("="*50)
+        print("=" * 50)
 
     else:
         print("\n[!] Could not find the SSH configuration block in the job output.")
@@ -368,88 +429,115 @@ def parse_output_and_display(output_content, job_id, cpus, mem, gpu, pk_account,
         print(output_content)
         print("-" * 50)
 
+
 # --------------------------------------------------------------------------------------
 # Main
 # --------------------------------------------------------------------------------------
 
+
 def main():
-    """ Main function to parse arguments and run the automation script. """
+    """Main function to parse arguments and run the automation script."""
     parser = argparse.ArgumentParser(
         description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
         epilog="Example usage:\n"
-               "  # Request a server with specific resources (CPU only)\n"
-               "  uv run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
-               "  # Request a server with a GPU (CPU auto-assigned by cluster)\n"
-               "  uv run python hpc_automator.py create --gpu\n\n"
-               "  # Request a specific GPU type (CPU auto-assigned)\n"
-               "  uv run python hpc_automator.py create --gpu --gpu-type A100\n\n"
-               "  # Request a GPU with memory only (no CPU specification)\n"
-               "  uv run python hpc_automator.py create --gpu --mem 16G\n\n"
-               "  # Request a server in the 'free' partition\n"
-               "  uv run python hpc_automator.py create --free\n\n"
-               "  # Request a server under the 'pkaiser_lab' account\n"
-               "  uv run python hpc_automator.py create --cpus 4 --pk_account\n\n"
-               "  # Disable blacklist or customize it\n"
-               "  uv run python hpc_automator.py create --gpu --no-blacklist\n"
-               "  uv run python hpc_automator.py create --gpu --blacklist hpc3-gpu-l54-08,hpc3-gpu-l54-09\n\n"
-               "  # Check current jobs\n"
-               "  uv run python hpc_automator.py jobs\n\n"
-               "  # Cancel a running server\n"
-               "  uv run python hpc_automator.py cancel 123456",
-        formatter_class=argparse.RawTextHelpFormatter
+        "  # Request a server with specific resources (CPU only)\n"
+        "  uv run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
+        "  # Request a server with a GPU (CPU auto-assigned by cluster)\n"
+        "  uv run python hpc_automator.py create --gpu\n\n"
+        "  # Request a specific GPU type (CPU auto-assigned)\n"
+        "  uv run python hpc_automator.py create --gpu --gpu-type A100\n\n"
+        "  # Request a GPU with memory only (no CPU specification)\n"
+        "  uv run python hpc_automator.py create --gpu --mem 16G\n\n"
+        "  # Request a server in the 'free' partition\n"
+        "  uv run python hpc_automator.py create --free\n\n"
+        "  # Request a server under the 'pkaiser_lab' account\n"
+        "  uv run python hpc_automator.py create --cpus 4 --pk_account\n\n"
+        "  # Disable blacklist or customize it\n"
+        "  uv run python hpc_automator.py create --gpu --no-blacklist\n"
+        "  uv run python hpc_automator.py create --gpu --blacklist hpc3-gpu-l54-08,hpc3-gpu-l54-09\n\n"
+        "  # Check current jobs\n"
+        "  uv run python hpc_automator.py jobs\n\n"
+        "  # Cancel a running server\n"
+        "  uv run python hpc_automator.py cancel 123456",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
-    subparsers = parser.add_subparsers(dest='command', required=True, help='Available actions')
+    subparsers = parser.add_subparsers(
+        dest="command", required=True, help="Available actions"
+    )
 
     # Create command
     parser_create = subparsers.add_parser(
-        'create',
-        help='Submits a new Slurm job to start a VS Code server.',
-        description='Creates a new VS Code server job, waits for it to start, and provides the necessary SSH configuration.'
-    )
-    parser_create.add_argument('--cpus', type=int, help='Number of CPUs to request (e.g., 4). Cannot be used with --gpu.')
-    parser_create.add_argument('--mem', type=str, help='Amount of memory to request (e.g., "16G").')
-    parser_create.add_argument(
-        '--gpu', action='store_true',
-        help=f'Request a GPU for the job. Adds "-p {DEFAULT_GPU_PARTITION} --gres=gpu:{{GPU_TYPE}}:{DEFAULT_GPU_COUNT}". Cannot be used with --cpus.'
+        "create",
+        help="Submits a new Slurm job to start a VS Code server.",
+        description="Creates a new VS Code server job, waits for it to start, and provides the necessary SSH configuration.",
     )
     parser_create.add_argument(
-        '--gpu-type', type=str, choices=['A30', 'A100', 'L40S', 'V100'], default=DEFAULT_GPU_TYPE,
-        help=f'GPU type to request when using --gpu (default: {DEFAULT_GPU_TYPE}). Choices: A30, A100, L40S, V100.'
+        "--cpus",
+        type=int,
+        help="Number of CPUs to request (e.g., 4). Cannot be used with --gpu.",
     )
     parser_create.add_argument(
-        '--free', action='store_true',
-        help=f'Request a job in the "{DEFAULT_FREE_PARTITION}" partition. Mutually exclusive with --gpu.'
+        "--mem", type=str, help='Amount of memory to request (e.g., "16G").'
     )
-    parser_create.add_argument('--pk_account', action='store_true', help=f'Submit the job under the {DEFAULT_ACCOUNT} account.')
-    parser_create.add_argument('--dry-run', action='store_true', help='Show the command without running it.')
+    parser_create.add_argument(
+        "--gpu",
+        action="store_true",
+        help=f'Request a GPU for the job. Adds "-p {DEFAULT_GPU_PARTITION} --gres=gpu:{{GPU_TYPE}}:{DEFAULT_GPU_COUNT}". Cannot be used with --cpus.',
+    )
+    parser_create.add_argument(
+        "--gpu-type",
+        type=str,
+        choices=["A30", "A100", "L40S", "V100"],
+        default=DEFAULT_GPU_TYPE,
+        help=f"GPU type to request when using --gpu (default: {DEFAULT_GPU_TYPE}). Choices: A30, A100, L40S, V100.",
+    )
+    parser_create.add_argument(
+        "--free",
+        action="store_true",
+        help=f'Request a job in the "{DEFAULT_FREE_PARTITION}" partition. Mutually exclusive with --gpu.',
+    )
+    parser_create.add_argument(
+        "--pk_account",
+        action="store_true",
+        help=f"Submit the job under the {DEFAULT_ACCOUNT} account.",
+    )
+    parser_create.add_argument(
+        "--dry-run", action="store_true", help="Show the command without running it."
+    )
 
     # Blacklist controls
     parser_create.add_argument(
-        '--blacklist', type=str, default=None,
-        help='Comma-separated node names to exclude (applied for --gpu by default).'
+        "--blacklist",
+        type=str,
+        default=None,
+        help="Comma-separated node names to exclude (overrides default GPU/CPU blacklists).",
     )
     parser_create.add_argument(
-        '--no-blacklist', action='store_true',
-        help='Disable blacklist entirely (even for GPU jobs).'
+        "--no-blacklist",
+        action="store_true",
+        help="Disable blacklist entirely (for both GPU and CPU jobs).",
     )
     parser_create.add_argument(
-        '--apply-blacklist-to-all', action='store_true',
-        help='Apply blacklist to CPU-only jobs as well (not just --gpu).'
+        "--apply-blacklist-to-all",
+        action="store_true",
+        help="(Deprecated) Blacklists are now applied to all job types by default.",
     )
 
     # Cancel command
     parser_cancel = subparsers.add_parser(
-        'cancel',
-        help='Stops a running VS Code server job on Slurm.',
-        description='Cancels a specific, running Slurm job using its job ID.'
+        "cancel",
+        help="Stops a running VS Code server job on Slurm.",
+        description="Cancels a specific, running Slurm job using its job ID.",
     )
-    parser_cancel.add_argument('job_id', help='The numeric ID of the Slurm job to be cancelled.')
+    parser_cancel.add_argument(
+        "job_id", help="The numeric ID of the Slurm job to be cancelled."
+    )
 
     # Jobs command
     parser_jobs = subparsers.add_parser(
-        'jobs',
-        help='Checks current HPC jobs using squeue.',
-        description='Displays current jobs for the user using squeue command.'
+        "jobs",
+        help="Checks current HPC jobs using squeue.",
+        description="Displays current jobs for the user using squeue command.",
     )
 
     args = parser.parse_args()
@@ -458,7 +546,7 @@ def main():
     print("--- UCI HPC VS Code Automation Script ---")
 
     # 1. Load SSH configuration from file
-    ssh_config_path = os.path.expanduser('~/.ssh/config')
+    ssh_config_path = os.path.expanduser("~/.ssh/config")
     try:
         with open(ssh_config_path) as f:
             ssh_config = paramiko.SSHConfig()
@@ -468,47 +556,64 @@ def main():
         return
 
     user_config = ssh_config.lookup(HPC_HOSTNAME)
-    if not user_config or 'hostname' not in user_config:
-        print(f"[!] No configuration for host '{HPC_HOSTNAME}' found in '{ssh_config_path}'.", file=sys.stderr)
+    if not user_config or "hostname" not in user_config:
+        print(
+            f"[!] No configuration for host '{HPC_HOSTNAME}' found in '{ssh_config_path}'.",
+            file=sys.stderr,
+        )
         return
 
-    # Build blacklist list (only for commands that support these arguments)
-    if hasattr(args, 'no_blacklist') and args.no_blacklist:
-        active_blacklist = []
+    # Build blacklist lists (only for commands that support these arguments)
+    # We determine which default list to use based on job type (GPU vs CPU)
+    if hasattr(args, "no_blacklist") and args.no_blacklist:
+        active_blacklist_gpu = []
+        active_blacklist_cpu = []
+    elif hasattr(args, "blacklist") and args.blacklist:
+        # CLI override applies to both job types
+        custom_blacklist = sanitize_blacklist_nodes(
+            [x for x in args.blacklist.split(",")]
+        )
+        active_blacklist_gpu = custom_blacklist
+        active_blacklist_cpu = custom_blacklist
     else:
-        if hasattr(args, 'blacklist') and args.blacklist:
-            active_blacklist = sanitize_blacklist_nodes([x for x in args.blacklist.split(",")])
-        else:
-            active_blacklist = sanitize_blacklist_nodes(BLACKLIST_NODES)
+        # Use default blacklists based on job type
+        active_blacklist_gpu = sanitize_blacklist_nodes(BLACKLIST_NODES_GPU)
+        active_blacklist_cpu = sanitize_blacklist_nodes(BLACKLIST_NODES_CPU)
 
     # 2. Handle dry-run mode without SSH connection
-    if args.command == 'create' and getattr(args, 'dry_run', False):
+    if args.command == "create" and getattr(args, "dry_run", False):
         sbatch_options = []
         if args.pk_account:
-            sbatch_options.append(f'--account={DEFAULT_ACCOUNT}')
+            sbatch_options.append(f"--account={DEFAULT_ACCOUNT}")
 
         # partitions/GPUs
         if args.gpu:
             gpu_type = args.gpu_type if args.gpu_type else DEFAULT_GPU_TYPE
-            sbatch_options.append(f'-p {DEFAULT_GPU_PARTITION} --gres=gpu:{gpu_type}:{DEFAULT_GPU_COUNT}')
-            if active_blacklist:
-                sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
+            sbatch_options.append(
+                f"-p {DEFAULT_GPU_PARTITION} --gres=gpu:{gpu_type}:{DEFAULT_GPU_COUNT}"
+            )
+            if active_blacklist_gpu:
+                sbatch_options.append(f"--exclude={','.join(active_blacklist_gpu)}")
         elif args.free:
-            sbatch_options.append(f'-p {DEFAULT_FREE_PARTITION}')
-            if args.apply_blacklist_to_all and active_blacklist:
-                sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
+            sbatch_options.append(f"-p {DEFAULT_FREE_PARTITION}")
+            if active_blacklist_cpu:
+                sbatch_options.append(f"--exclude={','.join(active_blacklist_cpu)}")
+        else:
+            # Default partition (CPU job) - apply CPU blacklist
+            if active_blacklist_cpu:
+                sbatch_options.append(f"--exclude={','.join(active_blacklist_cpu)}")
 
         # resources - only add CPU for non-GPU jobs
         if args.cpus and not args.gpu:
-            sbatch_options.append(f'--ntasks={args.cpus}')
+            sbatch_options.append(f"--ntasks={args.cpus}")
         if args.mem:
             mem = sanitize_resource_param(args.mem, "memory")
             if not mem:
                 return
-            sbatch_options.append(f'--mem={mem}')
+            sbatch_options.append(f"--mem={mem}")
 
         sbatch_args_str = " ".join(sbatch_options)
-        sbatch_command = f'sbatch {sbatch_args_str} {SBATCH_SCRIPT_PATH}'.strip()
+        sbatch_command = f"sbatch {sbatch_args_str} {SBATCH_SCRIPT_PATH}".strip()
 
         print("=== DRY RUN MODE ===")
         print(f"Would execute: {sbatch_command}")
@@ -520,15 +625,21 @@ def main():
         if not client:
             return
 
-        if args.command == 'create':
+        if args.command == "create":
             # Validate mutual exclusivity of --gpu and --free
             if args.gpu and args.free:
-                print("[!] Error: --gpu and --free options are mutually exclusive. Please choose one.", file=sys.stderr)
+                print(
+                    "[!] Error: --gpu and --free options are mutually exclusive. Please choose one.",
+                    file=sys.stderr,
+                )
                 return
 
             # Validate mutual exclusivity of --gpu and --cpus
             if args.gpu and args.cpus:
-                print("[!] Error: --gpu and --cpus options are mutually exclusive. GPU jobs cannot specify CPU count.", file=sys.stderr)
+                print(
+                    "[!] Error: --gpu and --cpus options are mutually exclusive. GPU jobs cannot specify CPU count.",
+                    file=sys.stderr,
+                )
                 return
 
             # Validate and sanitize resource parameters
@@ -537,7 +648,9 @@ def main():
                 if not args.mem:
                     return
             if args.cpus and args.cpus <= 0:
-                print("[!] Error: CPU count must be a positive integer.", file=sys.stderr)
+                print(
+                    "[!] Error: CPU count must be a positive integer.", file=sys.stderr
+                )
                 return
 
             # Attempt loop (to recover if somehow scheduled to a blacklisted node)
@@ -547,40 +660,55 @@ def main():
                 # Build sbatch options
                 sbatch_options = []
                 if args.pk_account:
-                    sbatch_options.append(f'--account={DEFAULT_ACCOUNT}')
+                    sbatch_options.append(f"--account={DEFAULT_ACCOUNT}")
 
                 if args.gpu:
                     gpu_type = args.gpu_type if args.gpu_type else DEFAULT_GPU_TYPE
-                    sbatch_options.append(f'-p {DEFAULT_GPU_PARTITION} --gres=gpu:{gpu_type}:{DEFAULT_GPU_COUNT}')
-                    if active_blacklist:
-                        sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
+                    sbatch_options.append(
+                        f"-p {DEFAULT_GPU_PARTITION} --gres=gpu:{gpu_type}:{DEFAULT_GPU_COUNT}"
+                    )
+                    if active_blacklist_gpu:
+                        sbatch_options.append(
+                            f"--exclude={','.join(active_blacklist_gpu)}"
+                        )
                 elif args.free:
-                    sbatch_options.append(f'-p {DEFAULT_FREE_PARTITION}')
-                    if args.apply_blacklist_to_all and active_blacklist:
-                        sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
+                    sbatch_options.append(f"-p {DEFAULT_FREE_PARTITION}")
+                    if active_blacklist_cpu:
+                        sbatch_options.append(
+                            f"--exclude={','.join(active_blacklist_cpu)}"
+                        )
                 else:
-                    # no partition override; optionally apply blacklist if user asked for it
-                    if args.apply_blacklist_to_all and active_blacklist:
-                        sbatch_options.append(f'--exclude={",".join(active_blacklist)}')
+                    # Default partition (CPU job) - apply CPU blacklist
+                    if active_blacklist_cpu:
+                        sbatch_options.append(
+                            f"--exclude={','.join(active_blacklist_cpu)}"
+                        )
 
                 # Only add CPU request for non-GPU jobs to avoid scheduling conflicts
                 if args.cpus and not args.gpu:
-                    sbatch_options.append(f'--ntasks={args.cpus}')
+                    sbatch_options.append(f"--ntasks={args.cpus}")
                 if args.mem:
-                    sbatch_options.append(f'--mem={args.mem}')
+                    sbatch_options.append(f"--mem={args.mem}")
 
                 sbatch_args_str = " ".join(sbatch_options)
-                sbatch_command = f'sbatch {sbatch_args_str} {SBATCH_SCRIPT_PATH}'.strip()
+                sbatch_command = (
+                    f"sbatch {sbatch_args_str} {SBATCH_SCRIPT_PATH}".strip()
+                )
 
                 job_id = submit_job(client, sbatch_command)
                 if not job_id:
                     print("[!] Submission failed. Aborting.", file=sys.stderr)
                     return
 
+                # Use appropriate blacklist for runtime node detection
+                runtime_blacklist = (
+                    active_blacklist_gpu if args.gpu else active_blacklist_cpu
+                )
                 output_content = get_job_output(
-                    client, job_id,
-                    blacklist_nodes=active_blacklist,
-                    auto_cancel_on_blacklist=True
+                    client,
+                    job_id,
+                    blacklist_nodes=runtime_blacklist,
+                    auto_cancel_on_blacklist=True,
                 )
 
                 if output_content == "__BLACKLISTED__":
@@ -589,28 +717,45 @@ def main():
                         print("[*] Retrying create after blacklist cancellation...")
                         continue
                     else:
-                        print("[!] Exceeded maximum attempts due to blacklist collisions.", file=sys.stderr)
+                        print(
+                            "[!] Exceeded maximum attempts due to blacklist collisions.",
+                            file=sys.stderr,
+                        )
                         return
                 elif output_content:
                     gpu_type = args.gpu_type if args.gpu_type else DEFAULT_GPU_TYPE
                     parse_output_and_display(
-                        output_content, job_id, args.cpus, args.mem, args.gpu,
-                        args.pk_account, gpu_type, DEFAULT_GPU_COUNT
+                        output_content,
+                        job_id,
+                        args.cpus,
+                        args.mem,
+                        args.gpu,
+                        args.pk_account,
+                        gpu_type,
+                        DEFAULT_GPU_COUNT,
                     )
                     break
                 else:
-                    print("[!] Failed to retrieve job output. Please log in manually to check the job status.")
-                    print(f"    Check for a file named '{OUTPUT_FILE_PREFIX}{job_id}{OUTPUT_FILE_SUFFIX}' in your home directory.")
+                    print(
+                        "[!] Failed to retrieve job output. Please log in manually to check the job status."
+                    )
+                    print(
+                        f"    Check for a file named '{OUTPUT_FILE_PREFIX}{job_id}{OUTPUT_FILE_SUFFIX}' in your home directory."
+                    )
                     break
 
-        elif args.command == 'cancel':
+        elif args.command == "cancel":
             if not validate_job_id(args.job_id):
-                print(f"[!] Invalid job ID: {args.job_id}. Must be a positive integer.", file=sys.stderr)
+                print(
+                    f"[!] Invalid job ID: {args.job_id}. Must be a positive integer.",
+                    file=sys.stderr,
+                )
                 return
             cancel_job(client, args.job_id)
 
-        elif args.command == 'jobs':
+        elif args.command == "jobs":
             check_jobs(client)
+
 
 def check_jobs(client, username="ddlin"):
     """
@@ -638,13 +783,14 @@ def check_jobs(client, username="ddlin"):
         print("[+] No jobs currently running.")
         return
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("🔍 Current HPC Jobs")
-    print("="*50)
+    print("=" * 50)
     print(stdout_output)
-    print("="*50)
+    print("=" * 50)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Before running, ensure you have the 'paramiko' library installed.
     # pip install paramiko
     main()
