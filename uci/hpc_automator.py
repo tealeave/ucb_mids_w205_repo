@@ -441,7 +441,7 @@ def main():
         description="A script to automate starting and stopping VS Code servers on the UCI HPC cluster via Slurm.",
         epilog="Example usage:\n"
         "  # Request a server with specific resources (CPU only)\n"
-        "  uv run python hpc_automator.py create --cpus 8 --mem 32G\n\n"
+        "  uv run python hpc_automator.py create --cpus 8 --mem 32G --free\n\n"
         "  # Request a server with a GPU (CPU auto-assigned by cluster)\n"
         "  uv run python hpc_automator.py create --gpu\n\n"
         "  # Request a specific GPU type (CPU auto-assigned)\n"
